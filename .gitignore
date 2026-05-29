@@ -1,0 +1,33 @@
+# Build
+build/
+dist/
+*.o
+*.a
+*.elf
+*.hex
+*.bin
+*.map
+
+# IDE
+.vscode/
+.settings/
+*.project
+*.pydevproject
+*.cproject
+
+# Temp
+*~
+*.swp
+*.tmp
+
+# Generated code
+src/asw/app_models/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+
+# OS
+.DS_Store
+Thumbs.db
