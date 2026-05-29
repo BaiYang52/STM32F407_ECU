@@ -1,0 +1,120 @@
+/**
+ * @file rte_interface.h
+ * @brief RTE Rte_Read/Rte_Write接口定义
+ * @version 1.0.0
+ * @date 2024-01-01
+ */
+
+#ifndef RTE_INTERFACE_H
+#define RTE_INTERFACE_H
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#include "rte_types.h"
+#include "types.h"
+
+    /* ============= Vehicle Control Signals (RX from VCU) ============= */
+
+    /**
+     * @brief 读取车辆控制信号 - 车速
+     * @param[out] Data 车速数据指针 (单位: 0.01 km/h)
+     * @return Std_ReturnType STD_OK或STD_NOT_OK
+     */
+    Std_ReturnType Rte_Read_VehicleCtrl_Port_Veh_Speed(float32 *Data);
+
+    /**
+     * @brief 读取车辆控制信号 - 点火状态
+     * @param[out] Data 点火状态 (0:OFF, 1:ACC, 2:ON, 3:CRANK)
+     * @return Std_ReturnType
+     */
+    Std_ReturnType Rte_Read_VehicleCtrl_Port_IGN_Status(uint8 *Data);
+
+    /**
+     * @brief 读取车辆控制信号 - 马达开关命令
+     * @param[out] Data 马达命令 (0:关, 1:开, 2:抱闸)
+     * @return Std_ReturnType
+     */
+    Std_ReturnType Rte_Read_VehicleCtrl_Port_Motor_Switch_Cmd(uint8 *Data);
+
+    /**
+     * @brief 读取车辆控制信号 - LED开关命令
+     * @param[out] Data LED命令 (0:关, 1:开)
+     * @return Std_ReturnType
+     */
+    Std_ReturnType Rte_Read_VehicleCtrl_Port_LED_Switch_Cmd(uint8 *Data);
+
+    /**
+     * @brief 读取车辆控制信号 - LED亮度等级
+     * @param[out] Data LED亮度 (0-10级)
+     * @return Std_ReturnType
+     */
+    Std_ReturnType Rte_Read_VehicleCtrl_Port_LED_Brightness_Level(uint8 *Data);
+
+    /* ============= ECU Status Signals (TX to VCU) ============= */
+
+    /**
+     * @brief 写入ECU状态信号 - 按键1状态
+     * @param[in] Data 按键状态 (0:未按, 1:按下, 2:无效)
+     * @return Std_ReturnType
+     */
+    Std_ReturnType Rte_Write_EcuStatus_Port_Button_1_Status(uint8 Data);
+
+    /**
+     * @brief 写入ECU状态信号 - 按键2状态
+     * @param[in] Data 按键状态
+     * @return Std_ReturnType
+     */
+    Std_ReturnType Rte_Write_EcuStatus_Port_Button_2_Status(uint8 Data);
+
+    /**
+     * @brief 写入ECU状态信号 - 系统电压
+     * @param[in] Data 系统电压 (单位: V, 公式: Y = X * 0.1)
+     * @return Std_ReturnType
+     */
+    Std_ReturnType Rte_Write_EcuStatus_Port_Sys_Voltage(uint8 Data);
+
+    /**
+     * @brief 写入ECU状态信号 - ECU温度
+     * @param[in] Data ECU温度 (单位: ℃, 公式: Y = X * 1 - 40)
+     * @return Std_ReturnType
+     */
+    Std_ReturnType Rte_Write_EcuStatus_Port_ECU_Temperature(uint8 Data);
+
+    /**
+     * @brief 写入ECU状态信号 - LED PWM占空比
+     * @param[in] Data LED PWM占空比 (单位: %, 公式: Y = X * 0.4)
+     * @return Std_ReturnType
+     */
+    Std_ReturnType Rte_Write_EcuStatus_Port_LED_PWM_Duty(uint8 Data);
+
+    /**
+     * @brief 写入ECU生命周期信号 - Flash刷写次数
+     * @param[in] Data Flash计数器 (0-65535)
+     * @return Std_ReturnType
+     */
+    Std_ReturnType Rte_Write_EcuLifeCycle_Port_Flash_Counter(uint16 Data);
+
+    /**
+     * @brief 写入ECU生命周期信号 - ECU错误码
+     * @param[in] Data ECU错误码 (0:按键卡滞, 1:Busoff, 2:温度过高)
+     * @return Std_ReturnType
+     */
+    Std_ReturnType Rte_Write_EcuLifeCycle_Port_ECU_Error_Code(uint8 Data);
+
+    /* ============= Network Management Signals ============= */
+
+    /**
+     * @brief 读取网络管理信号 - 唤醒原因
+     * @param[out] Data 唤醒原因 (0:无效, 1:NM唤醒, 2:IGN唤醒, 3:按键唤醒)
+     * @return Std_ReturnType
+     */
+    Std_ReturnType Rte_Read_EcuNM_Port_NM_Wakeup_Reason(uint8 *Data);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* RTE_INTERFACE_H */
