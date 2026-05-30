@@ -86,11 +86,12 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-
+//  printf("HardFault at PC=0x%08X\n", __get_PC());
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
     /* USER CODE BEGIN W1_HardFault_IRQn 0 */
+	//-------------------------------------------------------App_Watchdog_Feed();
     /* USER CODE END W1_HardFault_IRQn 0 */
   }
 }
@@ -210,7 +211,7 @@ void EXTI3_IRQHandler(void)
   /* USER CODE END EXTI3_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(KEY1_Pin);
   /* USER CODE BEGIN EXTI3_IRQn 1 */
-
+//  App_Button_K1_Handler();
   /* USER CODE END EXTI3_IRQn 1 */
 }
 
@@ -224,7 +225,7 @@ void EXTI4_IRQHandler(void)
   /* USER CODE END EXTI4_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(KEY0_Pin);
   /* USER CODE BEGIN EXTI4_IRQn 1 */
-
+//  App_Button_K0_Handler();
   /* USER CODE END EXTI4_IRQn 1 */
 }
 

@@ -123,16 +123,30 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2);
+  HAL_ADC_Start(&hadc1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+//  App_System_Init();
+//  App_TaskScheduler_Init();
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+//	  if (s_task10msFlag) {
+//		  App_Task_10ms();
+//	  }
+//	  if (s_task100msFlag) {
+//		  App_Task_100ms();
+//	  }
+//	  if (s_task1000msFlag) {
+//		  App_Task_1000ms();
+//	  }
   }
   /* USER CODE END 3 */
 }
