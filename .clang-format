@@ -1,0 +1,43 @@
+---
+Language:        Cpp
+BasedOnStyle:    LLVM
+
+# 缩进
+IndentWidth:     4
+UseTab:          Never
+TabWidth:        4
+ColumnLimit:     100
+
+# 括号和括号对齐
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignTrailingComments: true
+
+# 断行
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# 指针和引用对齐
+PointerAlignment: Right
+ReferenceAlignment: Pointer
+
+# 函数定义格式
+BinPackArguments: false
+BinPackParameters: false
+
+# 命名空间
+NamespaceIndentation: None
+
+# 注释
+ReflowComments: true
+MaxEmptyLinesToKeep: 2
+
+# 其他
+AccessModifierOffset: -4
+BreakBeforeBraces: Allman
+SortIncludes: true
+SortUsingDeclarations: true

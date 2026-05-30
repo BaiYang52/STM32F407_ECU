@@ -1,0 +1,51 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Install ARM Toolchain
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-arm-none-eabi
+    
+    - name: Install CMake
+      run: |
+        sudo apt-get install -y cmake
+    
+    - name: Build Debug
+      run: |
+        bash tools/build.sh Debug
+    
+    - name: Build Release
+      run: |
+        bash tools/build.sh Release
+    
+    - name: Check Code Style
+      run: |
+        find src inc -name "*.c" -o -name "*.h" | \
+        xargs clang-format --dry-run --Werror
+
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libcunit1 libcunit1-dev
+    
+    - name: Run Tests
+      run: |
+        bash tools/run_tests.sh
