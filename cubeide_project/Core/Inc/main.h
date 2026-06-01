@@ -31,7 +31,13 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "app_task_scheduler.h"
+#include "test_pwm.h"
+#include "test_can.h"
+#include "test_key.h"
+#include "test_adc.h"
+#include "test_nvm.h"
+#include "stdio.h"   // For printf
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -41,7 +47,12 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+#ifdef __GNUC__
+  /* With GCC, small printf (option ": " in linker options) calls __io_putchar() */
+  #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+  #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif /* __GNUC__ */
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -69,8 +80,6 @@ void Error_Handler(void);
 #define LIN1_TX_GPIO_Port GPIOA
 #define LIN1_RX_Pin GPIO_PIN_3
 #define LIN1_RX_GPIO_Port GPIOA
-#define ADC_TEMP_Pin GPIO_PIN_5
-#define ADC_TEMP_GPIO_Port GPIOC
 #define W25Q16_CS_Pin GPIO_PIN_0
 #define W25Q16_CS_GPIO_Port GPIOB
 #define LIN2_TX_Pin GPIO_PIN_10
@@ -87,9 +96,25 @@ void Error_Handler(void);
 #define CAN1_STBY_GPIO_Port GPIOA
 #define SYS_JTCK_SWCLK_Pin GPIO_PIN_14
 #define SYS_JTCK_SWCLK_GPIO_Port GPIOA
+#define DS18B20_DQ_Pin GPIO_PIN_0
+#define DS18B20_DQ_GPIO_Port GPIOE
 
 /* USER CODE BEGIN Private defines */
 
+extern CAN_HandleTypeDef hcan1;
+extern CAN_HandleTypeDef hcan2;
+
+extern RNG_HandleTypeDef hrng;
+
+extern RTC_HandleTypeDef hrtc;
+
+extern SPI_HandleTypeDef hspi1;
+
+extern TIM_HandleTypeDef htim4;
+
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart3;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

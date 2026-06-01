@@ -1,0 +1,7 @@
+../Core/Src/test_pwm.c:25:6:Test_PWM_Init	3
+../Core/Src/test_pwm.c:58:6:Test_PWM_LED_Breath	3
+../Core/Src/test_pwm.c:85:6:Test_PWM_Motor_Speed_Scan	2
+../Core/Src/test_pwm.c:106:6:Test_PWM_Motor_Reverse	3
+../Core/Src/test_pwm.c:136:6:Test_PWM_10ms_Task	5
+../Core/Src/test_pwm.c:157:6:Test_PWM_SetMode	1
+../Core/Src/test_pwm.c:167:19:Test_PWM_GetMode	1

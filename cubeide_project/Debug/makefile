@@ -52,6 +52,12 @@ default.size.stdout \
 OBJDUMP_LIST += \
 stm32f407ve_cfg.list \
 
+OBJCOPY_HEX += \
+stm32f407ve_cfg.hex \
+
+OBJCOPY_BIN += \
+stm32f407ve_cfg.bin \
+
 
 # All Target
 all: main-build
@@ -75,12 +81,22 @@ stm32f407ve_cfg.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
+stm32f407ve_cfg.hex: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O ihex $(EXECUTABLES) "stm32f407ve_cfg.hex"
+	@echo 'Finished building: $@'
+	@echo ' '
+
+stm32f407ve_cfg.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "stm32f407ve_cfg.bin"
+	@echo 'Finished building: $@'
+	@echo ' '
+
 # Other Targets
 clean:
-	-$(RM) default.size.stdout stm32f407ve_cfg.elf stm32f407ve_cfg.list stm32f407ve_cfg.map
+	-$(RM) default.size.stdout stm32f407ve_cfg.bin stm32f407ve_cfg.elf stm32f407ve_cfg.hex stm32f407ve_cfg.list stm32f407ve_cfg.map
 	-@echo ' '
 
-secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
+secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_HEX) $(OBJCOPY_BIN)
 
 fail-specified-linker-script-missing:
 	@echo 'Error: Cannot find the specified linker script. Check the linker settings in the build configuration.'

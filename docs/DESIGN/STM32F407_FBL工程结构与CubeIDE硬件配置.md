@@ -436,7 +436,7 @@ SECTIONS
 | **LED_PWM** | PD12 | TIM4_CH1 | PWM输出 | LED亮度调节 (0-80% PWM占空比) |
 | **MOTOR_PWM** | PD13 | TIM4_CH2 | PWM输出 | 马达速度控制 |
 | **MOTOR_DIR** | PD14 | GPIO Out | GPIO_Output | 马达正反转控制 |
-| **温度传感器** | PC5 | ADC1_IN15 | ADC模拟输入 | ADC采样温度 (0-100℃对应0-4095) |
+| **温度传感器** | PE0 | GPIO Out | GPIO_Output | DS18B20 DQ引脚 |
 | **按键K0** | PE4 | GPIO In + EXTI | GPIO_Input + 中断下降沿 | 本地唤醒源 (低电平=按下) |
 | **按键K1** | PE3 | GPIO In + EXTI | GPIO_Input + 中断下降沿 | 普通按键输入 |
 | **W25Q16_CS** | PB0 | SPI1_NSS | 复用功能 AF5 | SPI Flash片选 (默认高电平 低电平选中) |
