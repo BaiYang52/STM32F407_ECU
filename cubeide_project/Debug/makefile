@@ -67,7 +67,7 @@ main-build: stm32f407ve_cfg.elf secondary-outputs
 
 # Tool invocations
 stm32f407ve_cfg.elf stm32f407ve_cfg.map: $(OBJS) $(USER_OBJS) E:\Project\Github\STM32F407_ECU\cubeide_project\STM32F407VETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "stm32f407ve_cfg.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"E:\Project\Github\STM32F407_ECU\cubeide_project\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stm32f407ve_cfg.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "stm32f407ve_cfg.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"E:\Project\Github\STM32F407_ECU\cubeide_project\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stm32f407ve_cfg.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

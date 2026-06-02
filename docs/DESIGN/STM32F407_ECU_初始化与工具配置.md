@@ -443,8 +443,8 @@ MIT License
 
 ## 联系方式
 
-- 项目维护者: [Your Name]
-- 邮箱: [Your Email]
+- 项目维护者: [Rpcket]
+- 邮箱: [ys.niu@outlook.com]
 
 ---
 

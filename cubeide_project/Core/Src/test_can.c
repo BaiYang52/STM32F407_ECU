@@ -100,7 +100,7 @@ void Test_CAN_Send(uint32_t id, const uint8_t *data, uint8_t dlc)
         can_tx_count++;
 //        printf("[CAN] 发送成功 (ID: 0x%03X, DLC: %d, 总数: %lu)\n", id, dlc, can_tx_count);
     } else {
-        printf("[CAN] 发送失败! (ID: 0x%03X)\n", id);
+        printf("[CAN] 发送失败! (ID: 0x%03lX)\n", id);
     }
 }
 
@@ -126,7 +126,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     can_rx_count++;
 
     /* 打印接收到的消息 */
-    printf("[CAN] 接收 (ID: 0x%03X, DLC: %d, 总数: %lu) 数据: ",
+    printf("[CAN] 接收 (ID: 0x%03lX, DLC: %d, 总数: %lu) 数据: ",
            rx_header.StdId, rx_header.DLC, can_rx_count);
 
     for (int i = 0; i < rx_header.DLC; i++) {

@@ -1,5 +1,35 @@
 # STM32F407 AUTOSAR ECU 项目 - 完整文件清单
 
+#### 配置清单及原因分析
+
+| 模块 | 引脚 | 功能 | CubeMX设置 | 配置原因 |
+|------|------|------|-----------|---------|
+| **CAN1** | PB8 | CAN1_RX | 复用功能 AF9 | 通往CAN收发器RX引脚 |
+| | PB9 | CAN1_TX | 复用功能 AF9 | 通往CAN收发器TX引脚 |
+| | PA8 | GPIO Out | GPIO_Output (低电平=工作, 高=待机) | CAN收发器睡眠/唤醒控制 (SIT1042T) |
+| **CAN2** | PB12 | CAN2_RX | 复用功能 AF9 | 第二路CAN接口 |
+| | PB13 | CAN2_TX | 复用功能 AF9 | 第二路CAN接口 |
+| **LIN1** | PA2 | USART2_TX | 复用功能 AF7 | LIN1主节点发送 |
+| | PA3 | USART2_RX | 复用功能 AF7 | LIN1主节点接收 |
+| **LIN2** | PB10 | USART3_TX | 复用功能 AF7 | LIN2备用收发 |
+| | PB11 | USART3_RX | 复用功能 AF7 | LIN2备用收发 |
+| **调试UART** | PA9 | USART1_TX | 复用功能 AF7 | 调试信息输出 |
+| | PA10 | USART1_RX | 复用功能 AF7 | 接收调试命令 |
+| **LED_PWM** | PD12 | TIM4_CH1 | PWM输出 | LED亮度调节 (0-80% PWM占空比) |
+| **MOTOR_PWM** | PD13 | TIM4_CH2 | PWM输出 | 马达速度控制 |
+| **MOTOR_DIR** | PD14 | GPIO Out | GPIO_Output | 马达正反转控制 |
+| **温度传感器** | PE0 | GPIO Out | GPIO_Output | DS18B20 DQ引脚 |
+| **按键K0** | PE4 | GPIO In + EXTI | GPIO_Input + 中断下降沿 | 本地唤醒源 (低电平=按下) |
+| **按键K1** | PE3 | GPIO In + EXTI | GPIO_Input + 中断下降沿 | 普通按键输入 |
+| **W25Q16_CS** | PB0 | SPI1_NSS | 复用功能 AF5 | SPI Flash片选 (默认高电平 低电平选中) |
+| **W25Q16_CLK** | PB3 | SPI1_SCK | 复用功能 AF5 | SPI时钟 |
+| **W25Q16_MISO** | PB4 | SPI1_MISO | 复用功能 AF5 | SPI主入从出 (数据读) |
+| **W25Q16_MOSI** | PB5 | SPI1_MOSI | 复用功能 AF5 | SPI主出从入 (数据写) |
+| **调试器SWD** | PA13 | SWDIO | SWD | ST-LINK调试器数据线 |
+| | PA14 | SWCLK | SWD | ST-LINK调试器时钟线 |
+
+---
+
 ## 1. 项目文件树完整版
 
 ```
@@ -442,7 +472,6 @@ STM32F407_ECU_Project/
 ├── README.md                           # 项目说明
 └── LICENSE                             # 许可证
 ```
-
 ---
 
 ## 2. 关键文件大小估算
@@ -495,7 +524,6 @@ can_driver.c             CAN核心驱动实现
 can_interrupt.c          CAN中断处理
 can_types.h              CAN类型定义
 can_driver.h             CAN驱动头文件
-adc_driver.c             ADC驱动实现
 timer_systick.c          SysTick系统时钟驱动
 uart_debug.c             调试串口(USART1)
 uart_lin1.c              LIN1驱动(USART2)
@@ -589,7 +617,6 @@ test_dtc_trigger_recovery.c    DTC触发与恢复测试
 
 mock_can_driver.h              CAN驱动Mock对象
 mock_can_driver.c              CAN驱动Mock实现
-mock_adc_driver.h              ADC驱动Mock对象
 mock_nvm_driver.h              NVM驱动Mock对象
 can_test_frames.h              CAN测试报文数据
 dtc_test_data.h                DTC测试数据
@@ -665,4 +692,296 @@ rte_interface.h           # RTE接口
 
 ---
 
-**本清单包含了STM32F407 AUTOSAR ECU项目的完整文件参考，共215+个源代码文件，总计515KB+代码量。**
+#### FBL vs APP 的差异
+
+```
+共享部分 (src/config, src/mcal, inc/):
+├── MCAL驱动层 (CAN/UART/Flash/GPIO等)
+├── 公共头文件 (types.h, common.h, error_codes.h)
+├── 配置文件 (pin_config.c, system_config.c)
+└── 工具函数 (CRC32, 内存操作等)
+
+仅FBL部分 (src/fbl/):
+├── fbl_main.c              # FBL入口
+├── fbl_flash_driver.c      # Flash擦写逻辑
+├── fbl_dcm_service.c       # FBL诊断服务 (0x10/0x34/0x36/0x37)
+├── fbl_security.c          # AES128加密
+├── fbl_counter_manage.c    # 刷写计数器
+└── fbl_app_validate.c      # APP有效性检查
+
+仅APP部分 (src/app, src/asw, src/bsw):
+├── app/                    # 主应用程序
+├── asw/                    # Simulink应用层
+└── bsw/com/dcm等           # 应用层诊断服务
+```
+
+### 1.4 FBL 链接脚本 (linker/STM32F407VE_FBL.ld)
+
+```ld
+/* STM32F407VE_FBL.ld - FBL Bootloader 链接脚本 */
+
+MEMORY
+{
+  FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 64K   /* FBL空间 (64KB) */
+  RAM (rwx)       : ORIGIN = 0x20000000, LENGTH = 192K  /* 全部RAM */
+  CCRAM (rwx)     : ORIGIN = 0x10000000, LENGTH = 64K   /* 核心耦合RAM */
+}
+
+/* FBL段定义 */
+SECTIONS
+{
+  /* 代码段 (FBL代码) */
+  .text :
+  {
+    KEEP(*(.vectors))           /* 中断向量表 */
+    *(.text)                    /* FBL代码 */
+    *(.text.*)
+    *(.rodata)                  /* 常数 */
+    *(.rodata.*)
+  } > FLASH
+
+  /* 初始化数据段 */
+  .data :
+  {
+    *(.data)
+    *(.data.*)
+  } > RAM AT > FLASH
+
+  /* 未初始化数据段 */
+  .bss :
+  {
+    *(.bss)
+    *(.bss.*)
+    *(COMMON)
+  } > RAM
+
+  /* FBL特定段：刷写次数计数器存储位置 */
+  .fbl_config :
+  {
+    fbl_config_start = .;
+    *(.fbl_config)
+    fbl_config_end = .;
+  } > RAM
+
+  /* 堆和栈 */
+  .heap :
+  {
+    heap_start = .;
+    . += 4K;                    /* 堆大小 4KB */
+    heap_end = .;
+  } > RAM
+
+  .stack :
+  {
+    . += 8K;                    /* 栈大小 8KB */
+    stack_top = .;
+  } > RAM
+}
+
+/* 符号定义 */
+_etext = LOADADDR(.data);
+_sdata = ADDR(.data);
+_edata = _sdata + SIZEOF(.data);
+_sbss = ADDR(.bss);
+_ebss = _sbss + SIZEOF(.bss);
+```
+
+---
+
+### 1.5 APP 链接脚本 (linker/STM32F407VE_APP.ld)
+
+```ld
+/* STM32F407VE_APP.ld - APP应用程序 链接脚本 */
+
+MEMORY
+{
+  FLASH (rx)      : ORIGIN = 0x08010000, LENGTH = 448K  /* APP空间 (448KB) */
+  RAM (rwx)       : ORIGIN = 0x20000000, LENGTH = 192K  /* 全部RAM */
+  CCRAM (rwx)     : ORIGIN = 0x10000000, LENGTH = 64K   /* 核心耦合RAM */
+}
+
+SECTIONS
+{
+  /* APP有效性标志位 (0x08010000处) */
+  .app_valid :
+  {
+    app_valid_marker = .;
+    LONG(0x55AA55AA)            /* APP有效标志 */
+  } > FLASH
+
+  /* 代码段 */
+  .text :
+  {
+    KEEP(*(.vectors))           /* 中断向量表 */
+    *(.text)
+    *(.text.*)
+    *(.rodata)
+    *(.rodata.*)
+  } > FLASH
+
+  /* 初始化数据 */
+  .data :
+  {
+    *(.data)
+    *(.data.*)
+  } > RAM AT > FLASH
+
+  /* 未初始化数据 */
+  .bss :
+  {
+    *(.bss)
+    *(.bss.*)
+    *(COMMON)
+  } > RAM
+
+  /* 堆和栈 */
+  .heap :
+  {
+    heap_start = .;
+    . += 8K;
+    heap_end = .;
+  } > RAM
+
+  .stack :
+  {
+    . += 12K;
+    stack_top = .;
+  } > RAM
+}
+```
+
+## 第三部分：内存布局可视化
+
+### 3.1 Flash 内存分配
+
+```
+STM32F407VET6 Flash 总容量: 512 KB (0x08000000 - 0x08080000)
+
+┌────────────────────────────────────┐
+│ 0x08000000 - 0x08010000            │  FBL区域 (64 KB)
+│                                    │
+│  ┌──────────────────────────────┐  │
+│  │ FBL代码                      │  │  包含:
+│  │ ├─ 启动代码                  │  │  - 中断向量表
+│  │ ├─ MCAL驱动 (CAN/Flash等)    │  │  - FBL逻辑
+│  │ ├─ Flash擦写程序            │  │  - CRC校验
+│  │ └─ 诊断服务 (0x34/0x36/0x37)│  │  - 安全验证
+│  └──────────────────────────────┘  │
+│                                    │
+│ 预留: 0x08010000 分界线            │
+├────────────────────────────────────┤
+│ 0x08010000 - 0x08080000            │  APP区域 (448 KB)
+│                                    │
+│ ┌──────────────────────────────┐   │
+│ │ APP有效性标志位 (4字节)      │   │  0x55AA55AA = 有效
+│ │ 0x08010000: [0x55][0xAA][0x55]   │
+│ │            [0xAA]             │   │
+│ └──────────────────────────────┘   │
+│                                    │
+│ ┌──────────────────────────────┐   │
+│ │ APP代码                      │   │  包含:
+│ │ ├─ Simulink模型代码          │   │  - RTE接口
+│ │ ├─ BSW层 (DCM/DEM等)         │   │  - 应用算法
+│ │ ├─ 应用层 (Motor/LED等)      │   │  - 业务逻辑
+│ │ └─ 常数和初始化数据          │   │
+│ └──────────────────────────────┘   │
+│                                    │
+│ 已用: ~250KB (取决于代码量)        │
+│ 剩余: ~198KB (可用扩展)            │
+│                                    │
+└────────────────────────────────────┘
+```
+
+### 3.2 RAM 内存分配
+
+```
+STM32F407VET6 RAM 总容量: 192 KB (0x20000000 - 0x20030000)
+
+┌────────────────────────────────────┐
+│ 0x20000000 - 0x20030000            │  SRAM (192 KB)
+│                                    │
+│ ┌──────────────────────────────┐   │
+│ │ 数据段 (.data)               │   │  包含:
+│ │ ├─ 全局变量初始值            │   │  - CAN缓冲区
+│ │ ├─ 配置参数                  │   │  - COM信号缓冲
+│ │ └─ 常数                      │   │  - DTC存储
+│ │ 大小: ~20 KB                 │   │
+│ └──────────────────────────────┘   │
+│                                    │
+│ ┌──────────────────────────────┐   │
+│ │ 未初始化数据段 (.bss)        │   │  包含:
+│ │ ├─ 全局数组 (缓冲区)         │   │  - NVM缓冲
+│ │ ├─ 应用变量                  │   │  - 状态机变量
+│ │ └─ 驱动内部状态              │   │  - 中断处理上下文
+│ │ 大小: ~60 KB                 │   │
+│ └──────────────────────────────┘   │
+│                                    │
+│ ┌──────────────────────────────┐   │
+│ │ 堆 (Heap)                    │   │  可选，通常不用
+│ │ 大小: 8 KB                   │   │
+│ └──────────────────────────────┘   │
+│                                    │
+│ ┌──────────────────────────────┐   │
+│ │ 栈 (Stack)                   │   │  包含:
+│ │ 大小: 12 KB                  │   │  - 局部变量
+│ │ 顶端: 0x2002FF00             │   │  - 函数返回地址
+│ └──────────────────────────────┘   │  - 中断上下文
+│ 栈顶 (SP): 0x20030000             │
+│                                    │
+│ 总使用: 100KB, 剩余: 92KB         │
+│                                    │
+└────────────────────────────────────┘
+
+CCRAM (核心耦合RAM):
+┌────────────────────────────────────┐
+│ 0x10000000 - 0x10010000            │  CCRAM (64 KB)
+│                                    │
+│ 用途: 快速缓冲区或FBL临时存储      │
+│                                    │
+└────────────────────────────────────┘
+```
+
+### 3.3 NVM (外部Flash W25Q16) 分配
+
+```
+W25Q16 总容量: 2 MB (0x00000000 - 0x00200000)
+
+推荐分配方案:
+
+┌────────────────────────────────┐
+│ 0x000000 - 0x001000 (4 KB)     │  系统配置区
+│  ├─ 版本信息                   │
+│  ├─ 序列号                     │
+│  └─ 时间戳                     │
+├────────────────────────────────┤
+│ 0x001000 - 0x002000 (4 KB)     │  DID存储区 (数据标识)
+│  ├─ F190: VIN (17 字节)        │
+│  ├─ F200: 温度阈值 (2 字节)    │
+│  ├─ F201: 作者名称             │
+│  └─ F300: 公钥 (64 字节)       │
+├────────────────────────────────┤
+│ 0x002000 - 0x003000 (4 KB)     │  DTC存储区
+│  ├─ 0x010001 按键卡滞          │
+│  ├─ 0x020002 报文丢失          │
+│  ├─ 0x030003 温度过高          │
+│  ├─ 0x040004 按键短路          │
+│  ├─ 0x050005 总线关闭          │
+│  └─ 0x060006 CRC错误           │
+├────────────────────────────────┤
+│ 0x003000 - 0x004000 (4 KB)     │  计数器区 (刷写次数)
+│  ├─ F501: 刷写计数器 (16bit)   │
+│  │  当前值: 1000次 → 拒绝0x34   │
+│  └─ 预留: 清零密钥存储         │
+├────────────────────────────────┤
+│ 0x004000 - 0x200000 (2MB-16KB) │  FBL数据区 (临时)
+│  ├─ 固件包缓冲区               │
+│  ├─ 固件签名验证               │
+│  └─ 预留扩展                   │
+└────────────────────────────────┘
+```
+
+- ECU需要接收VCU控制命令 (Vehicle_Ctrl 0x210)
+- ECU需要发送状态反馈 (ECU_Status 0x1A0)
+- ECU需要网络管理报文 (ECU_NM_0x415)
+
+

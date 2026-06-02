@@ -7,6 +7,7 @@
 "./Core/Src/system_stm32f4xx.o"
 "./Core/Src/test_adc.o"
 "./Core/Src/test_can.o"
+"./Core/Src/test_heat.o"
 "./Core/Src/test_key.o"
 "./Core/Src/test_nvm.o"
 "./Core/Src/test_pwm.o"

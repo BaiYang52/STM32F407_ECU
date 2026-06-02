@@ -99,7 +99,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+	float temperature=0.0f;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -135,6 +135,7 @@ int main(void)
   Test_Key_Init();
   Test_ADC_Init();
   Test_NVM_Init();
+  Mcal_DS18B20_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -168,7 +169,11 @@ int main(void)
 	  }
 
 	  if (s_task1000msFlag) {
-		  Test_ADC_100ms_Task();
+		  Mcal_DS18B20_ReadTemperature(&temperature);
+//		  if (Mcal_DS18B20_ReadTemperature(&temperature) == STD_OK) {
+//			printf("temperature: %.2f ℃\r\n", temperature);
+//		}
+//		  Test_ADC_100ms_Task();
 //		  Test_NVM_1000ms_Task();
 		  s_task1000msFlag = 0;
 	  }

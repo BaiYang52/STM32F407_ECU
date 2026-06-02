@@ -66,15 +66,13 @@ void Test_PWM_LED_Breath(void)
     __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, pulse);
 
     brightness += direction;
-    printf("10ms\n");
+
     if (brightness >= 100) {
         brightness = 100;
         direction = -1;
-        printf("100%\n");
     } else if (brightness <= 0) {
         brightness = 0;
         direction = 1;
-        printf("0%\n");
     }
 }
 

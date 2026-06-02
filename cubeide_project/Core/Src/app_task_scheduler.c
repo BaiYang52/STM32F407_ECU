@@ -43,20 +43,17 @@ void HAL_SYSTICK_Callback(void)
     // 默认1ms调用一次
 
     s_task10msCounter++;
-    if (s_task10msCounter >= 10) {
-        s_task10msCounter = 0;
+    if (s_task10msCounter%10==0) {
         s_task10msFlag = 1;  // 标记10ms任务可以运行
     }
 
     s_task100msCounter++;
-    if (s_task100msCounter >= 100) {
-        s_task100msCounter = 0;
+    if (s_task100msCounter%100==0) {
         s_task100msFlag = 1;  // 标记100ms任务可以运行
     }
 
     s_task1000msCounter++;
-    if (s_task1000msCounter >= 1000) {
-        s_task1000msCounter = 0;
+    if (s_task1000msCounter%1000==0) {
         s_task1000msFlag = 1;  // 标记1000ms任务可以运行
     }
 }
