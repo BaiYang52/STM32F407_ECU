@@ -164,7 +164,6 @@ int main(void)
 
 	  if (s_task100msFlag) {
 		  Test_CAN_100ms_Task();
-//		  Test_ADC_100ms_Task();
 		  s_task100msFlag = 0;
 	  }
 
@@ -173,8 +172,6 @@ int main(void)
 //		  if (Mcal_DS18B20_ReadTemperature(&temperature) == STD_OK) {
 //			printf("temperature: %.2f ℃\r\n", temperature);
 //		}
-//		  Test_ADC_100ms_Task();
-//		  Test_NVM_1000ms_Task();
 		  s_task1000msFlag = 0;
 	  }
   }

@@ -132,21 +132,44 @@ static uint8_t Test_NVM_ReadStatus(void)
 }
 
 /**
- * @brief 等待Flash就绪
+ * @brief 等待Flash就绪（阻塞版本，带超时保护）
+ * @note 仅在初始化阶段调用。扇区擦除最慢400ms，所以超时设为1000ms。
+ *       若超时则打印错误并继续，避免永久挂死。
  */
 static void Test_NVM_WaitReady(void)
 {
-    /* 等待 WIP=0 表示就绪，期间打印状态以便调试 */
     uint8_t status;
-    do {
+    uint32_t timeout_ms = 1000;   /* W25Q16扇区擦除最坏 400ms，留余量到 1000ms */
+    uint32_t elapsed   = 0;
+
+    /* 先读一次状态（修复未初始化 bug） */
+    status = Test_NVM_ReadStatus();
+
+    while ((status & 0x01) && (elapsed < timeout_ms)) {
+        /* WIP=1，每5ms轮询一次 */
+        HAL_Delay(5);
+        elapsed += 5;
         status = Test_NVM_ReadStatus();
-        if (status & 0x01) {
-            /* WIP=1，等待并打印 */
-            printf("[NVM] Waiting WIP, status=0x%02X\n", status);
-            HAL_Delay(5);
-        }
-    } while (status & 0x01);
-    printf("[NVM] Ready, status=0x%02X\n", status);
+    }
+
+    if (status & 0x01) {
+        printf("[NVM] ERROR: WaitReady timeout (%lu ms)! status=0x%02X\n",
+               timeout_ms, status);
+    } else {
+        printf("[NVM] Ready, status=0x%02X (waited %lu ms)\n", status, elapsed);
+    }
+}
+
+/**
+ * @brief 非阻塞检查Flash就绪状态
+ * @return 0=就绪，1=忙
+ * @note 供运行时任务调用，不阻塞CPU。调用者检查返回值，
+ *       若返回1则下次轮询再继续，不耽误其他任务执行。
+ */
+static uint8_t Test_NVM_IsBusy(void)
+{
+    uint8_t status = Test_NVM_ReadStatus();
+    return (status & 0x01) ? 1 : 0;
 }
 
 /**
@@ -361,28 +384,28 @@ void Test_NVM_1000ms_Task(void)
         HAL_StatusTypeDef rret = Test_NVM_Read(NVM_DID_ADDR, vin_read, 17);
         if (rret == HAL_OK) {
             /* 打印原始字节以便排查异常 */
-            printf("[NVM] 读取VIN(bytes): ");
-            for (int i = 0; i < 17; i++) printf("%02X ", vin_read[i]);
-            printf("\n");
+            printf("[NVM] 读取VIN(bytes): \n");
+            // for (int i = 0; i < 17; i++) printf("%02X ", vin_read[i]);
+            // printf("\n");
             printf("[NVM] 读取VIN: %s\n", vin_read);
         } else {
             printf("[NVM] 读取VIN失败: %d\n", rret);
         }
 
         /* 测试2: 写入计数器 */
-        uint8_t counter_data[2] = {0x03, 0xE7};  /* 1000 */
+        uint8_t counter_data[2] = {0x03, 0xE8};  /* 1000 */
         printf("[NVM] 写入刷写计数器: %d\n",
                (counter_data[0] << 8) | counter_data[1]);
         rret = Test_NVM_EraseSector(NVM_COUNTER_ADDR);
-        if (rret != HAL_OK) printf("[NVM] 擦除计数器扇区失败: %d\n", rret);
+        // if (rret != HAL_OK) printf("[NVM] 擦除计数器扇区失败: %d\n", rret);
         rret = Test_NVM_WritePage(NVM_COUNTER_ADDR, counter_data, 2);
-        if (rret != HAL_OK) printf("[NVM] 写计数器失败: %d\n", rret);
+        // if (rret != HAL_OK) printf("[NVM] 写计数器失败: %d\n", rret);
 
         /* 读回计数器 */
         uint8_t counter_read[2] = {0};
         rret = Test_NVM_Read(NVM_COUNTER_ADDR, counter_read, 2);
         if (rret == HAL_OK) {
-            printf("[NVM] 读取刷写计数器(bytes): %02X %02X\n", counter_read[0], counter_read[1]);
+            // printf("[NVM] 读取刷写计数器(bytes): %02X %02X\n", counter_read[0], counter_read[1]);
             uint16_t counter_val = (counter_read[0] << 8) | counter_read[1];
             printf("[NVM] 读取刷写计数器: %d\n", counter_val);
         } else {

@@ -35,7 +35,6 @@ extern "C" {
 #include "test_pwm.h"
 #include "test_can.h"
 #include "test_key.h"
-#include "test_adc.h"
 #include "test_nvm.h"
 #include "test_heat.h"
 #include "stdio.h"   // For printf
