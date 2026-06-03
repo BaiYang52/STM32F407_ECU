@@ -104,41 +104,6 @@ void Test_CAN_Send(uint32_t id, const uint8_t *data, uint8_t dlc)
     }
 }
 
-/**
- * @brief CAN接收中断回调 (由 stm32f4xx_it.c 调用)
- * @details 由HAL驱动自动调用
- */
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
-{
-    if (hcan->Instance != CAN1) {
-        return;
-    }
-
-    CAN_RxHeaderTypeDef rx_header = {0};
-    uint8_t rx_data[8];
-
-    /* 接收消息 */
-    if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &rx_header, rx_data) != HAL_OK) {
-        printf("[CAN] 接收失败!\n");
-        return;
-    }
-
-    can_rx_count++;
-
-    /* 打印接收到的消息 */
-    printf("[CAN] 接收 (ID: 0x%03lX, DLC: %d, 总数: %lu) 数据: ",
-           rx_header.StdId, rx_header.DLC, can_rx_count);
-
-    for (int i = 0; i < rx_header.DLC; i++) {
-        printf("%02X ", rx_data[i]);
-    }
-    printf("\n");
-
-    /* 如果在回显模式，立即回复 */
-    if (can_state == CAN_TEST_ECHO) {
-        Test_CAN_Send(0x100, rx_data, rx_header.DLC);
-    }
-}
 
 /**
  * @brief CAN 100ms 周期任务

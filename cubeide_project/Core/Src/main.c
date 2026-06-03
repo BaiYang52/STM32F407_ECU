@@ -26,6 +26,17 @@
 //#include "test_key.h"
 //#include "test_adc.h"
 //#include "test_nvm.h"
+
+/* MCAL 驱动接口头文件 */
+#include "can_driver.h"
+#include "gpio_driver.h"
+#include "timer_driver.h"
+#include "pwm_driver.h"
+#include "spi_flash.h"
+
+/* BSW 接口头文件 */
+#include "canif.h"
+#include "com.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -130,12 +141,42 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-  Test_PWM_Init();
-  Test_CAN_Init();
+  /* ─── MCAL 驱动初始化 ─── */
+  Gpt_Init();                            /* SysTick 定时器 */
+  Dio_Init();                            /* GPIO 驱动 */
+
+  /* CAN 驱动初始化 (使用 CubeMX 已配置的 hcan1) */
+  static const Can_Config can1Config = {
+      .baudrate   = 500U,
+      .channel    = CAN_CHANNEL_1,
+      .autoBusOff = TRUE
+  };
+  Can_Init((void *)&can1Config);
+
+  /* PWM 驱动初始化 */
+  static const Pwm_Config pwmConfig[PWM_CHANNEL_COUNT] = {
+      {PWM_CH_LED,    0U,  PWM_OUTPUT_LOW},
+      {PWM_CH_MOTOR,  0U,  PWM_OUTPUT_LOW}
+  };
+  Pwm_Init(pwmConfig, PWM_CHANNEL_COUNT);
+
+  /* SPI Flash 初始化 */
+  if (Fls_Init() == STD_OK) {
+      printf("[MCAL] W25Q16 Flash 识别成功\n");
+  } else {
+      printf("[MCAL] W25Q16 Flash 识别失败\n");
+  }
+
+  /* ─── 原有测试模块初始化（兼容过渡） ─── */
+  /* Test_PWM_Init(); */   /* PWM 已由 MCAL Pwm_Init 启动 */
+  /* Test_CAN_Init(); */   /* CAN 已由 MCAL Can_Init 启动 */
   Test_Key_Init();
-  Test_ADC_Init();
   Test_NVM_Init();
   Mcal_DS18B20_Init();
+
+  /* ─── BSW 层初始化 ─── */
+  CanIf_Init();
+  Com_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -157,21 +198,36 @@ int main(void)
 //		  App_Task_1000ms();
 //	  }
 	  if (s_task10msFlag) {
+		  /* ── MCAL 轮询 ── */
+		  Can_MainFunction_Write();           /* 发送缓冲区 → 硬件邮箱 */
+		  Fls_MainFunction();                 /* Flash 操作完成检查 */
+
+		  /* ── BSW 轮询 ── */
+		  CanIf_MainFunction();               /* CanIf 发送调度 */
+		  Com_MainFunction();                 /* Com 信号打包 + 周期发送 */
+
+		  /* ── 原有测试任务 ── */
 		  Test_PWM_10ms_Task();
 		  Test_Key_10ms_Task();
+
 		  s_task10msFlag = 0;
 	  }
 
 	  if (s_task100msFlag) {
+		  /* ── MCAL BusOff 恢复 ── */
+		  Can_MainFunction_BusOff();
+
+		  /* ── 原有测试任务 ── */
 		  Test_CAN_100ms_Task();
+
 		  s_task100msFlag = 0;
 	  }
 
 	  if (s_task1000msFlag) {
-		  Mcal_DS18B20_ReadTemperature(&temperature);
-//		  if (Mcal_DS18B20_ReadTemperature(&temperature) == STD_OK) {
-//			printf("temperature: %.2f ℃\r\n", temperature);
-//		}
+		  if (Mcal_DS18B20_ReadTemperature(&temperature) == STD_OK) {
+			  printf("temperature: %.2f ℃\r\n", temperature);
+		  }
+		  // Test_NVM_1000ms_Task();
 		  s_task1000msFlag = 0;
 	  }
   }

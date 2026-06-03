@@ -43,11 +43,6 @@ STM32F407_ECU_Project/
 │   │   │   ├── can_lowlevel.c          # CAN底层寄存器操作
 │   │   │   └── can_buffer.c            # CAN环形缓冲区实现
 │   │   │
-│   │   ├── 📁 adc/
-│   │   │   ├── adc_driver.c            # ADC驱动核心
-│   │   │   ├── adc_interrupt.c         # ADC转换完成中断
-│   │   │   └── adc_filter.c            # ADC数据滤波
-│   │   │
 │   │   ├── 📁 timer/
 │   │   │   ├── timer_driver.c          # 通用定时器驱动
 │   │   │   ├── timer_systick.c         # SysTick系统时钟 (1ms)
@@ -191,7 +186,6 @@ STM32F407_ECU_Project/
 │   │   ├── app_can_handler.c           # CAN接收中断处理
 │   │   ├── app_gpio_handler.c          # GPIO外部中断处理 (按键/唤醒)
 │   │   ├── app_uart_handler.c          # UART接收中断处理
-│   │   ├── app_adc_handler.c           # ADC转换完成中断
 │   │   ├── app_hardfault_handler.c     # HardFault异常处理
 │   │   ├── app_lowpower.c              # 低功耗/唤醒管理
 │   │   └── app_watchdog.c              # 看门狗 (喂狗)
@@ -227,9 +221,6 @@ STM32F407_ECU_Project/
 │   │   │   ├── can_driver.h            # CAN驱动头文件
 │   │   │   ├── can_types.h             # CAN类型定义
 │   │   │   └── can_reg.h               # CAN寄存器定义
-│   │   ├── 📁 adc/
-│   │   │   ├── adc_driver.h
-│   │   │   └── adc_types.h
 │   │   ├── 📁 timer/
 │   │   │   ├── timer_driver.h
 │   │   │   └── systick.h
@@ -319,7 +310,6 @@ STM32F407_ECU_Project/
 │   │   │   ├── test_can_driver.c       # CAN驱动单元测试
 │   │   │   ├── test_can_send.c
 │   │   │   ├── test_can_receive.c
-│   │   │   ├── test_adc_driver.c
 │   │   │   ├── test_timer_driver.c
 │   │   │   └── test_gpio_driver.c
 │   │   │
@@ -351,8 +341,6 @@ STM32F407_ECU_Project/
 │   ├── 📁 mock/                        # Mock对象库
 │   │   ├── mock_can_driver.h
 │   │   ├── mock_can_driver.c
-│   │   ├── mock_adc_driver.h
-│   │   ├── mock_adc_driver.c
 │   │   ├── mock_nvm_driver.h
 │   │   ├── mock_nvm_driver.c
 │   │   └── mock_setup.h                # 通用Mock设置
@@ -984,4 +972,28 @@ W25Q16 总容量: 2 MB (0x00000000 - 0x00200000)
 - ECU需要发送状态反馈 (ECU_Status 0x1A0)
 - ECU需要网络管理报文 (ECU_NM_0x415)
 
-
+| 模块 | 引脚 | 功能 | CubeMX设置 | 配置原因 |
+|------|------|------|-----------|---------|
+| **CAN1** | PB8 | CAN1_RX | 复用功能 AF9 | 通往CAN收发器RX引脚 |
+| | PB9 | CAN1_TX | 复用功能 AF9 | 通往CAN收发器TX引脚 |
+| | PA8 | GPIO Out | GPIO_Output (低电平=工作, 高=待机) | CAN收发器睡眠/唤醒控制 (SIT1042T) |
+| **CAN2** | PB12 | CAN2_RX | 复用功能 AF9 | 第二路CAN接口 |
+| | PB13 | CAN2_TX | 复用功能 AF9 | 第二路CAN接口 |
+| **LIN1** | PA2 | USART2_TX | 复用功能 AF7 | LIN1主节点发送 |
+| | PA3 | USART2_RX | 复用功能 AF7 | LIN1主节点接收 |
+| **LIN2** | PB10 | USART3_TX | 复用功能 AF7 | LIN2备用收发 |
+| | PB11 | USART3_RX | 复用功能 AF7 | LIN2备用收发 |
+| **调试UART** | PA9 | USART1_TX | 复用功能 AF7 | 调试信息输出 |
+| | PA10 | USART1_RX | 复用功能 AF7 | 接收调试命令 |
+| **LED_PWM** | PD12 | TIM4_CH1 | PWM输出 | LED亮度调节 (0-80% PWM占空比) |
+| **MOTOR_PWM** | PD13 | TIM4_CH2 | PWM输出 | 马达速度控制 |
+| **MOTOR_DIR** | PD14 | GPIO Out | GPIO_Output | 马达正反转控制 |
+| **温度传感器** | PE0 | GPIO Out | GPIO_Output | DS18B20 DQ引脚 |
+| **按键K0** | PE4 | GPIO In + EXTI | GPIO_Input + 中断下降沿 | 本地唤醒源 (低电平=按下) |
+| **按键K1** | PE3 | GPIO In + EXTI | GPIO_Input + 中断下降沿 | 普通按键输入 |
+| **W25Q16_CS** | PB0 | SPI1_NSS | 复用功能 AF5 | SPI Flash片选 (默认高电平 低电平选中) |
+| **W25Q16_CLK** | PB3 | SPI1_SCK | 复用功能 AF5 | SPI时钟 |
+| **W25Q16_MISO** | PB4 | SPI1_MISO | 复用功能 AF5 | SPI主入从出 (数据读) |
+| **W25Q16_MOSI** | PB5 | SPI1_MOSI | 复用功能 AF5 | SPI主出从入 (数据写) |
+| **调试器SWD** | PA13 | SWDIO | SWD | ST-LINK调试器数据线 |
+| | PA14 | SWCLK | SWD | ST-LINK调试器时钟线 |

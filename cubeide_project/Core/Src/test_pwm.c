@@ -27,21 +27,21 @@ void Test_PWM_Init(void)
     printf("[PWM] 启动PWM输出...\n");
 
     printf("[PWM] TIM4启动状态:%d...\n",HAL_TIM_PWM_GetState(&htim4));
-    /* 启动LED PWM (TIM4_CH1) */
-    if (HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1) == HAL_OK) {
-        printf("[PWM] LED_PWM (PD12) 启动成功\n");
-    } else {
-        printf("[PWM] LED_PWM 启动失败!\n");
-        return;
-    }
+    // /* 启动LED PWM (TIM4_CH1) */
+    // if (HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1) == HAL_OK) {
+    //     printf("[PWM] LED_PWM (PD12) 启动成功\n");
+    // } else {
+    //     printf("[PWM] LED_PWM 启动失败!\n");
+    //     return;
+    // }
 
-    /* 启动马达PWM (TIM4_CH2) */
-    if (HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2) == HAL_OK) {
-        printf("[PWM] MOTOR_PWM (PD13) 启动成功\n");
-    } else {
-        printf("[PWM] MOTOR_PWM 启动失败!\n");
-        return;
-    }
+    // /* 启动马达PWM (TIM4_CH2) */
+    // if (HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_2) == HAL_OK) {
+    //     printf("[PWM] MOTOR_PWM (PD13) 启动成功\n");
+    // } else {
+    //     printf("[PWM] MOTOR_PWM 启动失败!\n");
+    //     return;
+    // }
 
     /* 初始化马达方向 (PD14) */
     HAL_GPIO_WritePin(MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin, GPIO_PIN_RESET);

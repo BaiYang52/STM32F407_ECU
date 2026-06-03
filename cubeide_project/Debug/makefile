@@ -11,6 +11,13 @@ RM := rm -rf
 -include sources.mk
 -include Drivers/STM32F4xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
+-include Core/Src/mcal/timer/subdir.mk
+-include Core/Src/mcal/spi/subdir.mk
+-include Core/Src/mcal/pwm/subdir.mk
+-include Core/Src/mcal/gpio/subdir.mk
+-include Core/Src/mcal/can/subdir.mk
+-include Core/Src/bsw/com/subdir.mk
+-include Core/Src/bsw/canif/subdir.mk
 -include Core/Src/subdir.mk
 -include objects.mk
 
@@ -34,40 +41,41 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := stm32f407ve_cfg
+BUILD_ARTIFACT_NAME := firmware_app
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-stm32f407ve_cfg.elf \
+firmware_app.elf \
 
 MAP_FILES += \
-stm32f407ve_cfg.map \
+firmware_app.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-stm32f407ve_cfg.list \
+firmware_app.list \
 
 OBJCOPY_HEX += \
-stm32f407ve_cfg.hex \
+firmware_app.hex \
 
 OBJCOPY_BIN += \
-stm32f407ve_cfg.bin \
+firmware_app.bin \
 
 
 # All Target
-all: main-build
+all:
+	+@$(MAKE) --no-print-directory main-build && $(MAKE) --no-print-directory post-build
 
 # Main-build Target
-main-build: stm32f407ve_cfg.elf secondary-outputs
+main-build: firmware_app.elf secondary-outputs
 
 # Tool invocations
-stm32f407ve_cfg.elf stm32f407ve_cfg.map: $(OBJS) $(USER_OBJS) E:\Project\Github\STM32F407_ECU\cubeide_project\STM32F407VETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "stm32f407ve_cfg.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"E:\Project\Github\STM32F407_ECU\cubeide_project\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="stm32f407ve_cfg.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+firmware_app.elf firmware_app.map: $(OBJS) $(USER_OBJS) E:\Project\Github\STM32F407_ECU\cubeide_project\STM32F407VETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "firmware_app.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"E:\Project\Github\STM32F407_ECU\cubeide_project\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="firmware_app.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -76,24 +84,28 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-stm32f407ve_cfg.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "stm32f407ve_cfg.list"
+firmware_app.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "firmware_app.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
-stm32f407ve_cfg.hex: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objcopy  -O ihex $(EXECUTABLES) "stm32f407ve_cfg.hex"
+firmware_app.hex: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O ihex $(EXECUTABLES) "firmware_app.hex"
 	@echo 'Finished building: $@'
 	@echo ' '
 
-stm32f407ve_cfg.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "stm32f407ve_cfg.bin"
+firmware_app.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "firmware_app.bin"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) default.size.stdout stm32f407ve_cfg.bin stm32f407ve_cfg.elf stm32f407ve_cfg.hex stm32f407ve_cfg.list stm32f407ve_cfg.map
+	-$(RM) default.size.stdout firmware_app.bin firmware_app.elf firmware_app.hex firmware_app.list firmware_app.map
+	-@echo ' '
+
+post-build:
+	arm-none-eabi-objcopy -O srec --srec-len=32 --srec-forceS3 "firmware_app.elf" "firmware_app.s19"
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_HEX) $(OBJCOPY_BIN)
@@ -105,6 +117,6 @@ fail-specified-linker-script-missing:
 warn-no-linker-script-specified:
 	@echo 'Warning: No linker script specified. Check the linker settings in the build configuration.'
 
-.PHONY: all clean dependents main-build fail-specified-linker-script-missing warn-no-linker-script-specified
+.PHONY: all clean dependents main-build fail-specified-linker-script-missing warn-no-linker-script-specified post-build
 
 -include ../makefile.targets

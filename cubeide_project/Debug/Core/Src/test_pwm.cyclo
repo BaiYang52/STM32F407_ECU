@@ -1,4 +1,4 @@
-../Core/Src/test_pwm.c:25:6:Test_PWM_Init	3
+../Core/Src/test_pwm.c:25:6:Test_PWM_Init	1
 ../Core/Src/test_pwm.c:58:6:Test_PWM_LED_Breath	3
 ../Core/Src/test_pwm.c:83:6:Test_PWM_Motor_Speed_Scan	2
 ../Core/Src/test_pwm.c:104:6:Test_PWM_Motor_Reverse	3

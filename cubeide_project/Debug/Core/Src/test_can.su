@@ -1,7 +1,6 @@
 ../Core/Src/test_can.c:30:13:Test_CAN_ConfigFilter	8	static
 ../Core/Src/test_can.c:53:6:Test_CAN_Init	8	static
 ../Core/Src/test_can.c:83:6:Test_CAN_Send	64	static
-../Core/Src/test_can.c:111:6:HAL_CAN_RxFifo0MsgPendingCallback	56	static
-../Core/Src/test_can.c:147:6:Test_CAN_100ms_Task	16	static
-../Core/Src/test_can.c:179:6:Test_CAN_SetMode	16	static
-../Core/Src/test_can.c:188:6:Test_CAN_GetStats	16	static
+../Core/Src/test_can.c:112:6:Test_CAN_100ms_Task	16	static
+../Core/Src/test_can.c:144:6:Test_CAN_SetMode	16	static
+../Core/Src/test_can.c:153:6:Test_CAN_GetStats	16	static
