@@ -173,10 +173,12 @@ static void Test_NVM_WriteEnable(void)
     if ((status & 0x02) == 0) {
         printf("[NVM] WEL not set after WREN!\n");
     }
-    /* 如果存在写保护（BP位），尝试清除保护：写状态寄存器为0 */
+
+    /* 如果存在写保护（BP位），尝试清除保护：写状态寄存器为0 */
     if (status & 0x1C) { /* BP0..BP2 位任一被置位 */
         printf("[NVM] Block protect bits set (0x%02X), clearing...\n", status & 0x1C);
-        /* 需要先写使能，再写状态寄存器(0x01) = 0x00 */        
+        /* 需要先写使能，再写状态寄存器(0x01) = 0x00 */
+        
         /* 再次 WREN */
         Test_NVM_CS_Control(GPIO_PIN_RESET);
         ret = HAL_SPI_Transmit(&hspi1, &cmd, 1, 100);
@@ -197,7 +199,8 @@ static void Test_NVM_WriteEnable(void)
             printf("[NVM] WriteStatusReg failed: %d\n", ret);
             return;
         }
-        /* 等待并打印状态 */
+
+        /* 等待并打印状态 */
         Test_NVM_WaitReady();
         status = Test_NVM_ReadStatus();
         printf("[NVM] Status after clearing BP: 0x%02X\n", status);
@@ -231,7 +234,7 @@ static HAL_StatusTypeDef Test_NVM_Read(uint32_t address, uint8_t *data, uint16_t
 static HAL_StatusTypeDef Test_NVM_WritePage(uint32_t address, const uint8_t *data, uint16_t length)
 {
     HAL_StatusTypeDef ret;
-    uint8_t addr_bytes[3];
+    uint8_t tx_buf[1 + 3 + W25Q16_PAGE_SIZE]; /* cmd + addr(3) + data */
 
     if (length > W25Q16_PAGE_SIZE) {
         return HAL_ERROR;  /* 单页最多256字节 */
@@ -240,33 +243,21 @@ static HAL_StatusTypeDef Test_NVM_WritePage(uint32_t address, const uint8_t *dat
     /* 写使能 */
     Test_NVM_WriteEnable();
 
-    /* 地址转为3字节 */
-    addr_bytes[0] = (address >> 16) & 0xFF;
-    addr_bytes[1] = (address >> 8) & 0xFF;
-    addr_bytes[2] = address & 0xFF;
+    /* 构造一次性发送缓冲：cmd + addr + data */
+    tx_buf[0] = W25Q16_CMD_WRITE;
+    tx_buf[1] = (address >> 16) & 0xFF;
+    tx_buf[2] = (address >> 8) & 0xFF;
+    tx_buf[3] = address & 0xFF;
+    memcpy(&tx_buf[4], data, length);
 
-    /* CS 低 */
+    /* CS 低，保持在整个事务中 */
     Test_NVM_CS_Control(GPIO_PIN_RESET);
 
-    /* 发送写命令 */
-    uint8_t cmd = W25Q16_CMD_WRITE;
-    ret = HAL_SPI_Transmit(&hspi1, &cmd, 1, 100);
+    /* 发送 cmd+addr+data 一次性事务 */
+    ret = HAL_SPI_Transmit(&hspi1, tx_buf, 4 + length, 500);
     if (ret != HAL_OK) {
         Test_NVM_CS_Control(GPIO_PIN_SET);
-        return ret;
-    }
-
-    /* 发送地址 */
-    ret = HAL_SPI_Transmit(&hspi1, addr_bytes, 3, 100);
-    if (ret != HAL_OK) {
-        Test_NVM_CS_Control(GPIO_PIN_SET);
-        return ret;
-    }
-
-    /* 发送数据 */
-    ret = HAL_SPI_Transmit(&hspi1, (uint8_t *)data, length, 100);
-    if (ret != HAL_OK) {
-        Test_NVM_CS_Control(GPIO_PIN_SET);
+        printf("[NVM] WritePage transmit failed: %d\n", ret);
         return ret;
     }
 
@@ -360,7 +351,7 @@ void Test_NVM_1000ms_Task(void)
         printf("[NVM] ========== NVM 读写测试 ==========\n");
 
         /* 测试1: 写入VIN */
-        uint8_t vin_data[17] = "N00000000000001\0";  /* 17字节 */
+        uint8_t vin_data[17] = "N000000000000010F";  /* 17字节 */
         printf("[NVM] 写入VIN: %s\n", vin_data);
         Test_NVM_EraseSector(NVM_DID_ADDR);
         Test_NVM_WritePage(NVM_DID_ADDR, vin_data, 17);
@@ -379,7 +370,7 @@ void Test_NVM_1000ms_Task(void)
         }
 
         /* 测试2: 写入计数器 */
-        uint8_t counter_data[2] = {0x03, 0xE8};  /* 1000 */
+        uint8_t counter_data[2] = {0x03, 0xE7};  /* 1000 */
         printf("[NVM] 写入刷写计数器: %d\n",
                (counter_data[0] << 8) | counter_data[1]);
         rret = Test_NVM_EraseSector(NVM_COUNTER_ADDR);
