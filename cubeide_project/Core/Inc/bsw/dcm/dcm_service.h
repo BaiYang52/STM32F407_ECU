@@ -13,7 +13,7 @@ extern "C"
 {
 #endif
 
-#include "dcm_types.h"
+//#include "dcm_types.h"
 #include "types.h"
 
     /* ============= UDS Service IDs ============= */

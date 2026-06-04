@@ -11,13 +11,18 @@ RM := rm -rf
 -include sources.mk
 -include Drivers/STM32F4xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
+-include Core/Src/rte/subdir.mk
 -include Core/Src/mcal/timer/subdir.mk
 -include Core/Src/mcal/spi/subdir.mk
 -include Core/Src/mcal/pwm/subdir.mk
 -include Core/Src/mcal/gpio/subdir.mk
 -include Core/Src/mcal/can/subdir.mk
+-include Core/Src/bsw/pdur/subdir.mk
+-include Core/Src/bsw/dcm/subdir.mk
 -include Core/Src/bsw/com/subdir.mk
+-include Core/Src/bsw/cantp/subdir.mk
 -include Core/Src/bsw/canif/subdir.mk
+-include Core/Src/asw/subdir.mk
 -include Core/Src/subdir.mk
 -include objects.mk
 

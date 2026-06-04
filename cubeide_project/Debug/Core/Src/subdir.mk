@@ -16,18 +16,7 @@ C_SRCS += \
 ../Core/Src/test_heat.c \
 ../Core/Src/test_key.c \
 ../Core/Src/test_nvm.c \
-../Core/Src/test_pwm.c \
-../Core/Src/bsw/canif/canif.c \
-../Core/Src/bsw/com/com.c \
-../Core/Src/bsw/cantp/cantp.c \
-../Core/Src/bsw/pdur/pdur.c \
-../Core/Src/mcal/can/can_driver.c \
-../Core/Src/mcal/can/can_interrupt.c \
-../Core/Src/mcal/can/can_lowlevel.c \
-../Core/Src/mcal/gpio/gpio_driver.c \
-../Core/Src/mcal/pwm/pwm_driver.c \
-../Core/Src/mcal/spi/spi_flash.c \
-../Core/Src/mcal/timer/timer_driver.c
+../Core/Src/test_pwm.c 
 
 OBJS += \
 ./Core/Src/app_task_scheduler.o \
@@ -41,18 +30,7 @@ OBJS += \
 ./Core/Src/test_heat.o \
 ./Core/Src/test_key.o \
 ./Core/Src/test_nvm.o \
-./Core/Src/test_pwm.o \
-./Core/Src/bsw/canif/canif.o \
-./Core/Src/bsw/com/com.o \
-./Core/Src/bsw/cantp/cantp.o \
-./Core/Src/bsw/pdur/pdur.o \
-./Core/Src/mcal/can/can_driver.o \
-./Core/Src/mcal/can/can_interrupt.o \
-./Core/Src/mcal/can/can_lowlevel.o \
-./Core/Src/mcal/gpio/gpio_driver.o \
-./Core/Src/mcal/pwm/pwm_driver.o \
-./Core/Src/mcal/spi/spi_flash.o \
-./Core/Src/mcal/timer/timer_driver.o
+./Core/Src/test_pwm.o 
 
 C_DEPS += \
 ./Core/Src/app_task_scheduler.d \
@@ -66,18 +44,7 @@ C_DEPS += \
 ./Core/Src/test_heat.d \
 ./Core/Src/test_key.d \
 ./Core/Src/test_nvm.d \
-./Core/Src/test_pwm.d \
-./Core/Src/bsw/canif/canif.d \
-./Core/Src/bsw/com/com.d \
-./Core/Src/bsw/cantp/cantp.d \
-./Core/Src/bsw/pdur/pdur.d \
-./Core/Src/mcal/can/can_driver.d \
-./Core/Src/mcal/can/can_interrupt.d \
-./Core/Src/mcal/can/can_lowlevel.d \
-./Core/Src/mcal/gpio/gpio_driver.d \
-./Core/Src/mcal/pwm/pwm_driver.d \
-./Core/Src/mcal/spi/spi_flash.d \
-./Core/Src/mcal/timer/timer_driver.d
+./Core/Src/test_pwm.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

@@ -91,8 +91,9 @@ extern "C" {
 #define NVM_APPL_DATA
 
 /* --- RTE 模块 --- */
-#define RTE_CODE
-#define RTE_APPL_DATA
+#define RTE_CODE                     /**< RTE 模块代码段 */
+#define RTE_APPL_CONST               /**< RTE 模块常量 */
+#define RTE_APPL_DATA                /**< RTE 模块数据 */
 
 /* --- OS 模块 --- */
 #define OS_CODE

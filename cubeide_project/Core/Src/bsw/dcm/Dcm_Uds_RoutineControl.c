@@ -11,14 +11,16 @@
 /*******************************************************************************
  * INCLUDES
  *******************************************************************************/
-#include "Dcm_Uds_Services.h"
-#include "Flash_Manager.h"
-#include "Can_Manager.h"
-#include "Led_Manager.h"
-#include "Motor_Manager.h"
-#include "Adc_Manager.h"
-#include "Mem.h"
-#include "Crc.h"
+#include "Std_Types.h"
+//#include "Dcm.h"
+#include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\bsw\dcm\Dcm.h"
+//#include "Flash_Manager.h"
+//#include "Can_Manager.h"
+//#include "Led_Manager.h"
+//#include "Motor_Manager.h"
+//#include "Adc_Manager.h"
+//#include "Mem.h"
+//#include "Crc.h"
 
 /*******************************************************************************
  * DEFINES
@@ -230,7 +232,7 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestRoutineStart_CheckPrecondition_0x0202(
 )
 {
     uint16 voltage;
-    int8 temperature;
+    sint8 temperature;
     uint8 conditionResult = PRECONDITION_SUCCESS;
     
     if ((NULL_PTR == OutputData_Ptr) || (NULL_PTR == OutputLength_Ptr) || 

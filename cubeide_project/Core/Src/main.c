@@ -169,7 +169,7 @@ int main(void)
   }
 
   /* ─── 原有测试模块初始化（兼容过渡） ─── */
-  /* Test_PWM_Init(); */   /* PWM 已由 MCAL Pwm_Init 启动 */
+  Test_PWM_Init();         /* PWM 已由 MCAL Pwm_Init 启动，Test_PWM_Init 设置呼吸模式 */
   /* Test_CAN_Init(); */   /* CAN 已由 MCAL Can_Init 启动 */
   Test_Key_Init();
   Test_NVM_Init();

@@ -25,7 +25,7 @@
 #define COM_PERIOD_ECU_NM        100U
 
 /** 接收超时时间 (ms) */
-#define COM_RX_TIMEOUT_MS        100U
+#define COM_RX_TIMEOUT_MS        2000U
 
 /* ==================== 信号描述表 ==================== */
 

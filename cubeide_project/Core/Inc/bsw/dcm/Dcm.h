@@ -20,7 +20,7 @@ extern "C" {
  * INCLUDES
  *******************************************************************************/
 #include "Std_Types.h"
-#include "Dcm.h"
+#include "Dcm_Uds_Config.h"
 
 /*******************************************************************************
  * DEFINES & MACROS
@@ -112,6 +112,7 @@ typedef uint8 Dcm_NegativeResponseCodeType;
 #define DCM_E_GENERAL_PROGRAMMING_FAILURE           0x72U
 #define DCM_E_TRANSFER_DATA_CRCERROR                0x73U
 #define DCM_E_REQUEST_TRANSFER_EXIT_NEGATIVE_RESPONSE 0x71U
+#define DCM_E_REQUEST_OUT_OF_RANGE                    0x31U
 
 /*******************************************************************************
  * TYPE DEFINITIONS

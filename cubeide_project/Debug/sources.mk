@@ -25,13 +25,18 @@ OBJCOPY_BIN :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 Core/Src \
+Core/Src/asw \
 Core/Src/bsw/canif \
+Core/Src/bsw/cantp \
 Core/Src/bsw/com \
+Core/Src/bsw/dcm \
+Core/Src/bsw/pdur \
 Core/Src/mcal/can \
 Core/Src/mcal/gpio \
 Core/Src/mcal/pwm \
 Core/Src/mcal/spi \
 Core/Src/mcal/timer \
+Core/Src/rte \
 Core/Startup \
 Drivers/STM32F4xx_HAL_Driver/Src \
 
