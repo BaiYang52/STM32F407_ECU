@@ -16,7 +16,11 @@ RM := rm -rf
 -include Core/Src/mcal/pwm/subdir.mk
 -include Core/Src/mcal/gpio/subdir.mk
 -include Core/Src/mcal/can/subdir.mk
+-include Core/Src/bsw/timer/subdir.mk
+-include Core/Src/bsw/pdur/subdir.mk
+-include Core/Src/bsw/dcm/subdir.mk
 -include Core/Src/bsw/com/subdir.mk
+-include Core/Src/bsw/cantp/subdir.mk
 -include Core/Src/bsw/canif/subdir.mk
 -include Core/Src/subdir.mk
 -include objects.mk

@@ -22,6 +22,13 @@
 #ifndef __MAIN_H
 #define __MAIN_H
 
+#include <stm32f4xx_hal_can.h>
+#include <stm32f4xx_hal_rng.h>
+#include <stm32f4xx_hal_rtc.h>
+#include <stm32f4xx_hal_spi.h>
+#include <stm32f4xx_hal_tim.h>
+#include <stm32f4xx_hal_uart.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

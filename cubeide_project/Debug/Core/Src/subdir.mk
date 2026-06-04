@@ -5,7 +5,6 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../Core/Src/app_task_scheduler.c \
 ../Core/Src/main.c \
 ../Core/Src/stm32f4xx_hal_msp.c \
 ../Core/Src/stm32f4xx_it.c \
@@ -16,21 +15,9 @@ C_SRCS += \
 ../Core/Src/test_heat.c \
 ../Core/Src/test_key.c \
 ../Core/Src/test_nvm.c \
-../Core/Src/test_pwm.c \
-../Core/Src/bsw/canif/canif.c \
-../Core/Src/bsw/com/com.c \
-../Core/Src/bsw/cantp/cantp.c \
-../Core/Src/bsw/pdur/pdur.c \
-../Core/Src/mcal/can/can_driver.c \
-../Core/Src/mcal/can/can_interrupt.c \
-../Core/Src/mcal/can/can_lowlevel.c \
-../Core/Src/mcal/gpio/gpio_driver.c \
-../Core/Src/mcal/pwm/pwm_driver.c \
-../Core/Src/mcal/spi/spi_flash.c \
-../Core/Src/mcal/timer/timer_driver.c
+../Core/Src/test_pwm.c 
 
 OBJS += \
-./Core/Src/app_task_scheduler.o \
 ./Core/Src/main.o \
 ./Core/Src/stm32f4xx_hal_msp.o \
 ./Core/Src/stm32f4xx_it.o \
@@ -41,21 +28,9 @@ OBJS += \
 ./Core/Src/test_heat.o \
 ./Core/Src/test_key.o \
 ./Core/Src/test_nvm.o \
-./Core/Src/test_pwm.o \
-./Core/Src/bsw/canif/canif.o \
-./Core/Src/bsw/com/com.o \
-./Core/Src/bsw/cantp/cantp.o \
-./Core/Src/bsw/pdur/pdur.o \
-./Core/Src/mcal/can/can_driver.o \
-./Core/Src/mcal/can/can_interrupt.o \
-./Core/Src/mcal/can/can_lowlevel.o \
-./Core/Src/mcal/gpio/gpio_driver.o \
-./Core/Src/mcal/pwm/pwm_driver.o \
-./Core/Src/mcal/spi/spi_flash.o \
-./Core/Src/mcal/timer/timer_driver.o
+./Core/Src/test_pwm.o 
 
 C_DEPS += \
-./Core/Src/app_task_scheduler.d \
 ./Core/Src/main.d \
 ./Core/Src/stm32f4xx_hal_msp.d \
 ./Core/Src/stm32f4xx_it.d \
@@ -66,18 +41,7 @@ C_DEPS += \
 ./Core/Src/test_heat.d \
 ./Core/Src/test_key.d \
 ./Core/Src/test_nvm.d \
-./Core/Src/test_pwm.d \
-./Core/Src/bsw/canif/canif.d \
-./Core/Src/bsw/com/com.d \
-./Core/Src/bsw/cantp/cantp.d \
-./Core/Src/bsw/pdur/pdur.d \
-./Core/Src/mcal/can/can_driver.d \
-./Core/Src/mcal/can/can_interrupt.d \
-./Core/Src/mcal/can/can_lowlevel.d \
-./Core/Src/mcal/gpio/gpio_driver.d \
-./Core/Src/mcal/pwm/pwm_driver.d \
-./Core/Src/mcal/spi/spi_flash.d \
-./Core/Src/mcal/timer/timer_driver.d
+./Core/Src/test_pwm.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -87,7 +51,7 @@ Core/Src/%.o Core/Src/%.su Core/Src/%.cyclo: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/app_task_scheduler.cyclo ./Core/Src/app_task_scheduler.d ./Core/Src/app_task_scheduler.o ./Core/Src/app_task_scheduler.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32f4xx_hal_msp.cyclo ./Core/Src/stm32f4xx_hal_msp.d ./Core/Src/stm32f4xx_hal_msp.o ./Core/Src/stm32f4xx_hal_msp.su ./Core/Src/stm32f4xx_it.cyclo ./Core/Src/stm32f4xx_it.d ./Core/Src/stm32f4xx_it.o ./Core/Src/stm32f4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f4xx.cyclo ./Core/Src/system_stm32f4xx.d ./Core/Src/system_stm32f4xx.o ./Core/Src/system_stm32f4xx.su ./Core/Src/test_can.cyclo ./Core/Src/test_can.d ./Core/Src/test_can.o ./Core/Src/test_can.su ./Core/Src/test_heat.cyclo ./Core/Src/test_heat.d ./Core/Src/test_heat.o ./Core/Src/test_heat.su ./Core/Src/test_key.cyclo ./Core/Src/test_key.d ./Core/Src/test_key.o ./Core/Src/test_key.su ./Core/Src/test_nvm.cyclo ./Core/Src/test_nvm.d ./Core/Src/test_nvm.o ./Core/Src/test_nvm.su ./Core/Src/test_pwm.cyclo ./Core/Src/test_pwm.d ./Core/Src/test_pwm.o ./Core/Src/test_pwm.su
+	-$(RM) ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32f4xx_hal_msp.cyclo ./Core/Src/stm32f4xx_hal_msp.d ./Core/Src/stm32f4xx_hal_msp.o ./Core/Src/stm32f4xx_hal_msp.su ./Core/Src/stm32f4xx_it.cyclo ./Core/Src/stm32f4xx_it.d ./Core/Src/stm32f4xx_it.o ./Core/Src/stm32f4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f4xx.cyclo ./Core/Src/system_stm32f4xx.d ./Core/Src/system_stm32f4xx.o ./Core/Src/system_stm32f4xx.su ./Core/Src/test_can.cyclo ./Core/Src/test_can.d ./Core/Src/test_can.o ./Core/Src/test_can.su ./Core/Src/test_heat.cyclo ./Core/Src/test_heat.d ./Core/Src/test_heat.o ./Core/Src/test_heat.su ./Core/Src/test_key.cyclo ./Core/Src/test_key.d ./Core/Src/test_key.o ./Core/Src/test_key.su ./Core/Src/test_nvm.cyclo ./Core/Src/test_nvm.d ./Core/Src/test_nvm.o ./Core/Src/test_nvm.su ./Core/Src/test_pwm.cyclo ./Core/Src/test_pwm.d ./Core/Src/test_pwm.o ./Core/Src/test_pwm.su
 
 .PHONY: clean-Core-2f-Src
 

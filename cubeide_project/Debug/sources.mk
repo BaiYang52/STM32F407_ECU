@@ -24,9 +24,13 @@ OBJCOPY_BIN :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
-Core/Src \
 Core/Src/bsw/canif \
+Core/Src/bsw/cantp \
 Core/Src/bsw/com \
+Core/Src/bsw/dcm \
+Core/Src/bsw/pdur \
+Core/Src/bsw/timer \
+Core/Src \
 Core/Src/mcal/can \
 Core/Src/mcal/gpio \
 Core/Src/mcal/pwm \

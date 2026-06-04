@@ -13,6 +13,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include "stm32f4xx_hal.h"
 
 /* 外部任务标志 (由SysTick中断设置) */
 extern uint8_t s_task10msFlag;
