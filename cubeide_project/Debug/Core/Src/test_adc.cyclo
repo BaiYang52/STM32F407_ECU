@@ -1,0 +1,5 @@
+../Core/Src/test_adc.c:24:6:Test_ADC_Init	1
+../Core/Src/test_adc.c:79:14:Test_ADC_RawToTemp	1
+../Core/Src/test_adc.c:90:6:Test_ADC_100ms_Task	1
+../Core/Src/test_adc.c:105:7:Test_ADC_GetTemperature	1
+../Core/Src/test_adc.c:114:10:Test_ADC_GetRaw	1

@@ -1,346 +1,381 @@
 /**
  * @file can_driver.c
- * @brief CAN驱动程序实现
- * @version 1.0.0
- * @date 2024-01-01
+ * @brief AUTOSAR CAN Driver 实现
+ * @version 2.0.0
  */
 
-#include "can_driver.h"
+#include "mcal/can/can_driver.h"
 #include "common.h"
+#include "stm32f4xx_hal.h"
 
-/* ============= Private Defines ============= */
+/* ==================== 外部引用：CubeMX 全局句柄 ==================== */
+extern CAN_HandleTypeDef hcan1;
+extern CAN_HandleTypeDef hcan2;
 
-#define CAN_RX_BUFFER_SIZE 256U
-#define CAN_TX_BUFFER_SIZE 64U
+/* ==================== 私有宏 ==================== */
 
-/* ============= Private Data Types ============= */
+#define CAN_GET_HANDLE(ch)          (((ch) == CAN_CHANNEL_1) ? (&hcan1) : (&hcan2))
+#define CAN_IS_VALID_CH(ch)         ((ch) < CAN_NUM_OF_CHANNELS)
+#define CAN_TX_MAILBOX_RETRY       3U
 
-/**
- * @struct Can_RxBufferType
- * @brief CAN接收缓冲区结构体
- */
+/* ==================== 私有数据结构 ==================== */
+
 typedef struct
 {
-    Can_FrameType buffer[CAN_RX_BUFFER_SIZE];
-    uint16 writeIndex;
-    uint16 readIndex;
-    uint16 count;
-} Can_RxBufferType;
+    Can_Frame  buffer[CAN_RX_FIFO_DEPTH];
+    VAR(uint16, CAN_APPL_DATA) writeIdx;
+    VAR(uint16, CAN_APPL_DATA) readIdx;
+    VAR(uint16, CAN_APPL_DATA) count;
+} Can_RxFifoType;
 
-/**
- * @struct Can_TxBufferType
- * @brief CAN发送缓冲区结构体
- */
 typedef struct
 {
-    Can_FrameType buffer[CAN_TX_BUFFER_SIZE];
-    uint16 writeIndex;
-    uint16 readIndex;
-    uint16 count;
+    Can_Frame  buffer[CAN_TX_BUFFER_DEPTH];
+    VAR(uint16, CAN_APPL_DATA) writeIdx;
+    VAR(uint16, CAN_APPL_DATA) readIdx;
+    VAR(uint16, CAN_APPL_DATA) count;
 } Can_TxBufferType;
 
-/**
- * @struct Can_DriverStateType
- * @brief CAN驱动状态结构体
- */
 typedef struct
 {
-    uint8 initialized;
-    Can_MessageStateType txState;
-    Can_MessageStateType rxState;
-    uint32 rxErrors;
-    uint32 txErrors;
-    uint32 busoffCounter;
-} Can_DriverStateType;
+    Can_StateType        state;
+    uint8                txErrCnt;
+    uint8                rxErrCnt;
+    boolean              initialized;
+    Can_RxFifoType       rxFifo;
+    Can_TxBufferType     txBuf;
+    uint32               busoffCount;
+} Can_ChannelDataType;
 
-/* ============= Private Global Variables ============= */
+/* ==================== 私有全局变量 ==================== */
 
-/** CAN接收缓冲区数组 (每个通道一个) */
-static Can_RxBufferType s_canRxBuffer[CAN_CHANNEL_MAX];
+static VAR(Can_ChannelDataType, CAN_APPL_DATA) s_chanData[CAN_NUM_OF_CHANNELS];
+static VAR(Can_RxNotification, CAN_APPL_DATA)  s_rxNotification = NULL_PTR;
 
-/** CAN发送缓冲区数组 (每个通道一个) */
-static Can_TxBufferType s_canTxBuffer[CAN_CHANNEL_MAX];
+/* ==================== 私有函数声明 ==================== */
 
-/** CAN驱动状态数组 */
-static Can_DriverStateType s_canDriverState[CAN_CHANNEL_MAX] = {
-    {0, CAN_MSG_IDLE, CAN_MSG_IDLE, 0, 0, 0}, {0, CAN_MSG_IDLE, CAN_MSG_IDLE, 0, 0, 0}};
+static FUNC(void, CAN_CODE) Can_InitChannel(uint8 Channel);
+static FUNC(Std_ReturnType, CAN_CODE) Can_WriteHwMailbox(uint8 Channel, const Can_Frame *Frame);
+static FUNC(void, CAN_CODE) Can_ConfigFilter(uint8 Channel);
 
-/* ============= Private Function Declarations ============= */
+/* ==================== 公开函数实现 ==================== */
 
-static void Mcal_Can_BufferInit(uint8 Channel);
-static Std_ReturnType Mcal_Can_PushRxBuffer(uint8 Channel, const Can_FrameType *Frame);
-static Std_ReturnType Mcal_Can_PopRxBuffer(uint8 Channel, Can_FrameType *Frame);
-static Std_ReturnType Mcal_Can_PushTxBuffer(uint8 Channel, const Can_FrameType *Frame);
-static Std_ReturnType Mcal_Can_PopTxBuffer(uint8 Channel, Can_FrameType *Frame);
-
-/* ============= Public Function Implementations ============= */
-
-/**
- * @brief CAN驱动初始化
- */
-Std_ReturnType Mcal_Can_Init(const Can_ConfigType *Config)
+FUNC(Std_ReturnType, CAN_CODE)
+Can_Init(
+    CONSTP2VAR(Can_Config, AUTOMATIC, CAN_APPL_DATA) Config
+)
 {
-    CAN_HandleTypeDef hcan;
-
-    /* 参数检查 */
-    if ((Config == NULL) || (Config->channel >= CAN_CHANNEL_MAX))
-    {
+    if (Config == NULL_PTR) {
+        return STD_NOT_OK;
+    }
+    if (!CAN_IS_VALID_CH(Config->channel)) {
         return STD_NOT_OK;
     }
 
-    /* 初始化缓冲区 */
-    Mcal_Can_BufferInit(Config->channel);
+    uint8 ch = Config->channel;
 
-    /* 配置HAL CAN结构体 */
-    if (Config->channel == CAN_CHANNEL_1)
-    {
-        hcan.Instance = CAN1;
-    }
-    else
-    {
-        hcan.Instance = CAN2;
+    if (s_chanData[ch].initialized) {
+        (void)HAL_CAN_Stop(CAN_GET_HANDLE(ch));
+        s_chanData[ch].state = CAN_STATE_STOPPED;
     }
 
-    /* 根据波特率计算分频器 */
-    /* STM32F407 APB1时钟 = 42MHz */
-    switch (Config->baudrate)
-    {
-    case 125:
-        hcan.Init.Prescaler = 42; /* 42 * 16 = 672 => 42MHz / 336 = 125kHz */
-        break;
-    case 250:
-        hcan.Init.Prescaler = 21;
-        break;
-    case 500:
-        hcan.Init.Prescaler = 10;
-        break;
-    case 1000:
-        hcan.Init.Prescaler = 5;
-        break;
-    default:
+    Can_InitChannel(ch);
+    Can_ConfigFilter(ch);
+
+    if (HAL_CAN_Start(CAN_GET_HANDLE(ch)) != HAL_OK) {
         return STD_NOT_OK;
     }
-
-    hcan.Init.Mode = CAN_MODE_NORMAL;
-    hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
-    hcan.Init.TimeSeg1 = CAN_BS1_3TQ;
-    hcan.Init.TimeSeg2 = CAN_BS2_4TQ;
-    hcan.Init.TimeTriggeredMode = DISABLE;
-    hcan.Init.AutoBusOff = ENABLE;
-    hcan.Init.AutoWakeUp = ENABLE;
-    hcan.Init.AutoRetransmission = ENABLE;
-    hcan.Init.ReceiveFifoLocked = DISABLE;
-    hcan.Init.TransmitFifoPriority = DISABLE;
-
-    /* 初始化CAN硬件 */
-    if (HAL_CAN_Init(&hcan) != HAL_OK)
-    {
+    if (HAL_CAN_ActivateNotification(CAN_GET_HANDLE(ch),
+                                     CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK) {
         return STD_NOT_OK;
     }
-
-    /* 配置接收过滤器 (接收所有消息) */
-    CAN_FilterTypeDef sFilterConfig;
-    sFilterConfig.FilterBank = 0;
-    sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
-    sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
-    sFilterConfig.FilterIdHigh = 0x0000;
-    sFilterConfig.FilterIdLow = 0x0000;
-    sFilterConfig.FilterMaskIdHigh = 0x0000;
-    sFilterConfig.FilterMaskIdLow = 0x0000;
-    sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
-    sFilterConfig.FilterActivation = ENABLE;
-
-    if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) != HAL_OK)
-    {
-        return STD_NOT_OK;
+    if (HAL_CAN_ActivateNotification(CAN_GET_HANDLE(ch),
+                                     CAN_IT_TX_MAILBOX_EMPTY) != HAL_OK) {
+        /* 非致命 */
     }
 
-    /* 启动CAN */
-    if (HAL_CAN_Start(&hcan) != HAL_OK)
-    {
-        return STD_NOT_OK;
-    }
-
-    /* 启用接收中断 */
-    if (HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
-    {
-        return STD_NOT_OK;
-    }
-
-    s_canDriverState[Config->channel].initialized = 1;
+    s_chanData[ch].state       = CAN_STATE_STARTED;
+    s_chanData[ch].initialized = TRUE;
 
     return STD_OK;
 }
 
-/**
- * @brief CAN消息发送
- */
-Std_ReturnType Mcal_Can_Send(uint8 Channel, const Can_FrameType *Frame)
+FUNC(Std_ReturnType, CAN_CODE)
+Can_Write(
+    uint8                                    Channel,
+    CONSTP2CONST(Can_Frame, AUTOMATIC, CAN_APPL_CONST) Frame
+)
 {
-    if ((Channel >= CAN_CHANNEL_MAX) || (Frame == NULL))
-    {
+    if (!CAN_IS_VALID_CH(Channel)) { return STD_NOT_OK; }
+    if (Frame == NULL_PTR)         { return STD_NOT_OK; }
+    if (!s_chanData[Channel].initialized) { return STD_NOT_OK; }
+
+    Can_TxBufferType *pTx = &s_chanData[Channel].txBuf;
+
+    if (pTx->count >= CAN_TX_BUFFER_DEPTH) {
         return STD_NOT_OK;
     }
 
-    /* 检查驱动是否初始化 */
-    if (s_canDriverState[Channel].initialized == 0)
-    {
-        return STD_NOT_OK;
+    MEMCPY(&pTx->buffer[pTx->writeIdx], Frame, sizeof(Can_Frame));
+
+    pTx->writeIdx++;
+    if (pTx->writeIdx >= CAN_TX_BUFFER_DEPTH) {
+        pTx->writeIdx = 0U;
     }
 
-    /* 将消息加入发送缓冲区 */
-    return Mcal_Can_PushTxBuffer(Channel, Frame);
-}
-
-/**
- * @brief CAN消息接收
- */
-Std_ReturnType Mcal_Can_Receive(uint8 Channel, Can_FrameType *Frame)
-{
-    if ((Channel >= CAN_CHANNEL_MAX) || (Frame == NULL))
-    {
-        return STD_NOT_OK;
-    }
-
-    /* 从接收缓冲区取出消息 */
-    return Mcal_Can_PopRxBuffer(Channel, Frame);
-}
-
-/* ============= Private Function Implementations ============= */
-
-/**
- * @brief 初始化缓冲区
- */
-static void Mcal_Can_BufferInit(uint8 Channel)
-{
-    s_canRxBuffer[Channel].writeIndex = 0;
-    s_canRxBuffer[Channel].readIndex = 0;
-    s_canRxBuffer[Channel].count = 0;
-
-    s_canTxBuffer[Channel].writeIndex = 0;
-    s_canTxBuffer[Channel].readIndex = 0;
-    s_canTxBuffer[Channel].count = 0;
-}
-
-/**
- * @brief 将接收消息加入缓冲区
- */
-static Std_ReturnType Mcal_Can_PushRxBuffer(uint8 Channel, const Can_FrameType *Frame)
-{
-    Can_RxBufferType *pBuffer = &s_canRxBuffer[Channel];
-
-    /* 缓冲区满检查 */
-    if (pBuffer->count >= CAN_RX_BUFFER_SIZE)
-    {
-        s_canDriverState[Channel].rxErrors++;
-        return STD_NOT_OK;
-    }
-
-    /* 复制数据到缓冲区 */
-    MEMCPY(&pBuffer->buffer[pBuffer->writeIndex], Frame, sizeof(Can_FrameType));
-
-    /* 更新写指针 */
-    pBuffer->writeIndex++;
-    if (pBuffer->writeIndex >= CAN_RX_BUFFER_SIZE)
-    {
-        pBuffer->writeIndex = 0;
-    }
-
-    pBuffer->count++;
+    __disable_irq();
+    pTx->count++;
+    __enable_irq();
 
     return STD_OK;
 }
 
-/**
- * @brief 从缓冲区取出接收消息
- */
-static Std_ReturnType Mcal_Can_PopRxBuffer(uint8 Channel, Can_FrameType *Frame)
+FUNC(Std_ReturnType, CAN_CODE)
+Can_Read(
+    uint8                    Channel,
+    P2VAR(Can_Frame, AUTOMATIC, CAN_APPL_DATA) Frame
+)
 {
-    Can_RxBufferType *pBuffer = &s_canRxBuffer[Channel];
+    if (!CAN_IS_VALID_CH(Channel)) { return STD_NOT_OK; }
+    if (Frame == NULL_PTR)         { return STD_NOT_OK; }
 
-    /* 缓冲区空检查 */
-    if (pBuffer->count == 0)
-    {
-        return STD_NOT_OK;
+    Can_RxFifoType *pRx = &s_chanData[Channel].rxFifo;
+
+    if (pRx->count == 0U) { return STD_NOT_OK; }
+
+    __disable_irq();
+    MEMCPY(Frame, &pRx->buffer[pRx->readIdx], sizeof(Can_Frame));
+    pRx->readIdx++;
+    if (pRx->readIdx >= CAN_RX_FIFO_DEPTH) {
+        pRx->readIdx = 0U;
     }
-
-    /* 复制数据 */
-    MEMCPY(Frame, &pBuffer->buffer[pBuffer->readIndex], sizeof(Can_FrameType));
-
-    /* 更新读指针 */
-    pBuffer->readIndex++;
-    if (pBuffer->readIndex >= CAN_RX_BUFFER_SIZE)
-    {
-        pBuffer->readIndex = 0;
-    }
-
-    pBuffer->count--;
+    pRx->count--;
+    __enable_irq();
 
     return STD_OK;
 }
 
-/**
- * @brief 将消息加入发送缓冲区
- */
-static Std_ReturnType Mcal_Can_PushTxBuffer(uint8 Channel, const Can_FrameType *Frame)
+FUNC(Can_StateType, CAN_CODE)
+Can_GetControllerState(uint8 Channel)
 {
-    Can_TxBufferType *pBuffer = &s_canTxBuffer[Channel];
+    if (!CAN_IS_VALID_CH(Channel)) { return CAN_STATE_UNINIT; }
+    return s_chanData[Channel].state;
+}
 
-    /* 缓冲区满检查 */
-    if (pBuffer->count >= CAN_TX_BUFFER_SIZE)
-    {
-        s_canDriverState[Channel].txErrors++;
+FUNC(void, CAN_CODE)
+Can_GetErrorCounters(
+    uint8           Channel,
+    P2VAR(uint8, AUTOMATIC, CAN_APPL_DATA) TxErrCntPtr,
+    P2VAR(uint8, AUTOMATIC, CAN_APPL_DATA) RxErrCntPtr
+)
+{
+    if (!CAN_IS_VALID_CH(Channel)) { return; }
+    if (TxErrCntPtr != NULL_PTR) { *TxErrCntPtr = s_chanData[Channel].txErrCnt; }
+    if (RxErrCntPtr != NULL_PTR) { *RxErrCntPtr = s_chanData[Channel].rxErrCnt; }
+}
+
+FUNC(void, CAN_CODE)
+Can_SetRxNotification(Can_RxNotification Callback)
+{
+    s_rxNotification = Callback;
+}
+
+/* ==================== 中断处理 ==================== */
+
+FUNC(void, CAN_CODE)
+Can_RxISR(P2VAR(void, AUTOMATIC, CAN_APPL_DATA) hcan)
+{
+    CAN_HandleTypeDef *pHal = (CAN_HandleTypeDef *)hcan;
+    uint8 ch;
+
+    if (pHal->Instance == CAN1) {
+        ch = CAN_CHANNEL_1;
+    } else if (pHal->Instance == CAN2) {
+        ch = CAN_CHANNEL_2;
+    } else {
+        return;
+    }
+
+    CAN_RxHeaderTypeDef rxHdr;
+    uint8               rawData[8];
+    Can_RxFifoType     *pRx = &s_chanData[ch].rxFifo;
+
+    if (HAL_CAN_GetRxMessage(pHal, CAN_RX_FIFO0, &rxHdr, rawData) != HAL_OK) {
+        return;
+    }
+
+    Can_Frame frame;
+    frame.id        = rxHdr.StdId;
+    frame.dlc       = rxHdr.DLC;
+    frame.idType    = (rxHdr.IDE == CAN_ID_STD) ? CAN_ID_STANDARD : CAN_ID_EXTENDED;
+    frame.frameType = (rxHdr.RTR == CAN_RTR_DATA) ? CAN_FRAME_DATA : CAN_FRAME_REMOTE;
+    MEMCPY(frame.sdu, rawData, (rxHdr.DLC > CAN_MAX_DLC) ? CAN_MAX_DLC : rxHdr.DLC);
+
+    if (pRx->count < CAN_RX_FIFO_DEPTH) {
+        MEMCPY(&pRx->buffer[pRx->writeIdx], &frame, sizeof(Can_Frame));
+        pRx->writeIdx++;
+        if (pRx->writeIdx >= CAN_RX_FIFO_DEPTH) {
+            pRx->writeIdx = 0U;
+        }
+        pRx->count++;
+    }
+
+    if (s_rxNotification != NULL_PTR) {
+        s_rxNotification(ch, &frame);
+    }
+}
+
+FUNC(void, CAN_CODE)
+Can_TxISR(P2VAR(void, AUTOMATIC, CAN_APPL_DATA) hcan)
+{
+    (void)hcan;
+}
+
+FUNC(void, CAN_CODE)
+Can_ErrorISR(P2VAR(void, AUTOMATIC, CAN_APPL_DATA) hcan)
+{
+    CAN_HandleTypeDef *pHal = (CAN_HandleTypeDef *)hcan;
+    uint8 ch;
+
+    if (pHal->Instance == CAN1) {
+        ch = CAN_CHANNEL_1;
+    } else if (pHal->Instance == CAN2) {
+        ch = CAN_CHANNEL_2;
+    } else {
+        return;
+    }
+
+    /* 通过 HAL 寄存器读取错误计数 */
+    CAN_TypeDef *CANx = pHal->Instance;
+    uint32 esr = CANx->ESR;
+    s_chanData[ch].txErrCnt = (uint8)((esr >> 16U) & 0xFFU);   /* TEC */
+    s_chanData[ch].rxErrCnt = (uint8)((esr >> 24U) & 0xFFU);   /* REC */
+
+    if (esr & (1U << 2U)) {  /* BOFF bit in ESR */
+        s_chanData[ch].state = CAN_STATE_BUSOFF;
+        s_chanData[ch].busoffCount++;
+    }
+}
+
+/* ==================== 主函数轮询 ==================== */
+
+FUNC(void, CAN_CODE)
+Can_MainFunction_Write(void)
+{
+    uint8 ch;
+
+    for (ch = 0U; ch < CAN_NUM_OF_CHANNELS; ch++) {
+        if (!s_chanData[ch].initialized)          { continue; }
+        if (s_chanData[ch].state != CAN_STATE_STARTED) { continue; }
+
+        Can_TxBufferType *pTx = &s_chanData[ch].txBuf;
+
+        if (pTx->count == 0U) { continue; }
+
+        Can_Frame frame;
+        __disable_irq();
+        MEMCPY(&frame, &pTx->buffer[pTx->readIdx], sizeof(Can_Frame));
+        pTx->readIdx++;
+        if (pTx->readIdx >= CAN_TX_BUFFER_DEPTH) {
+            pTx->readIdx = 0U;
+        }
+        pTx->count--;
+        __enable_irq();
+
+        (void)Can_WriteHwMailbox(ch, &frame);
+    }
+}
+
+FUNC(void, CAN_CODE)
+Can_MainFunction_BusOff(void)
+{
+    uint8 ch;
+
+    for (ch = 0U; ch < CAN_NUM_OF_CHANNELS; ch++) {
+        if (s_chanData[ch].state != CAN_STATE_BUSOFF) { continue; }
+
+        CAN_HandleTypeDef *pHal = CAN_GET_HANDLE(ch);
+
+        HAL_CAN_ResetError(pHal);
+
+        if (HAL_CAN_Start(pHal) == HAL_OK) {
+            s_chanData[ch].state = CAN_STATE_STARTED;
+            s_chanData[ch].txErrCnt = 0U;
+            s_chanData[ch].rxErrCnt = 0U;
+            (void)HAL_CAN_ActivateNotification(pHal, CAN_IT_RX_FIFO0_MSG_PENDING);
+        }
+    }
+}
+
+/* ==================== 私有函数实现 ==================== */
+
+static FUNC(void, CAN_CODE)
+Can_InitChannel(uint8 Channel)
+{
+    Can_ChannelDataType *pChan = &s_chanData[Channel];
+
+    pChan->state       = CAN_STATE_STOPPED;
+    pChan->txErrCnt    = 0U;
+    pChan->rxErrCnt    = 0U;
+    pChan->initialized = FALSE;
+    pChan->busoffCount = 0U;
+
+    pChan->rxFifo.writeIdx = 0U;
+    pChan->rxFifo.readIdx  = 0U;
+    pChan->rxFifo.count    = 0U;
+
+    pChan->txBuf.writeIdx = 0U;
+    pChan->txBuf.readIdx  = 0U;
+    pChan->txBuf.count    = 0U;
+}
+
+static FUNC(Std_ReturnType, CAN_CODE)
+Can_WriteHwMailbox(uint8 Channel, const Can_Frame *Frame)
+{
+    CAN_HandleTypeDef *pHal = CAN_GET_HANDLE(Channel);
+
+    CAN_TxHeaderTypeDef txHdr;
+    uint8               txData[8];
+    uint32              txMailbox;
+
+    if (Frame->idType == CAN_ID_STANDARD) {
+        txHdr.StdId = Frame->id;
+        txHdr.IDE   = CAN_ID_STD;
+    } else {
+        txHdr.ExtId = Frame->id;
+        txHdr.IDE   = CAN_ID_EXT;
+    }
+
+    txHdr.RTR = (Frame->frameType == CAN_FRAME_DATA) ? CAN_RTR_DATA : CAN_RTR_REMOTE;
+    txHdr.DLC = (Frame->dlc > CAN_MAX_DLC) ? CAN_MAX_DLC : Frame->dlc;
+    txHdr.TransmitGlobalTime = DISABLE;
+
+    MEMCPY(txData, Frame->sdu, txHdr.DLC);
+
+    if (HAL_CAN_AddTxMessage(pHal, &txHdr, txData, &txMailbox) != HAL_OK) {
+        s_chanData[Channel].txErrCnt++;
         return STD_NOT_OK;
     }
-
-    /* 复制数据到缓冲区 */
-    MEMCPY(&pBuffer->buffer[pBuffer->writeIndex], Frame, sizeof(Can_FrameType));
-
-    /* 更新写指针 */
-    pBuffer->writeIndex++;
-    if (pBuffer->writeIndex >= CAN_TX_BUFFER_SIZE)
-    {
-        pBuffer->writeIndex = 0;
-    }
-
-    pBuffer->count++;
 
     return STD_OK;
 }
 
-/**
- * @brief 从缓冲区取出发送消息
- */
-static Std_ReturnType Mcal_Can_PopTxBuffer(uint8 Channel, Can_FrameType *Frame)
+static FUNC(void, CAN_CODE)
+Can_ConfigFilter(uint8 Channel)
 {
-    Can_TxBufferType *pBuffer = &s_canTxBuffer[Channel];
+    CAN_HandleTypeDef *pHal = CAN_GET_HANDLE(Channel);
 
-    /* 缓冲区空检查 */
-    if (pBuffer->count == 0)
-    {
-        return STD_NOT_OK;
-    }
+    CAN_FilterTypeDef filter;
+    filter.FilterBank           = (Channel == CAN_CHANNEL_1) ? 0U : 14U;
+    filter.FilterMode           = CAN_FILTERMODE_IDMASK;
+    filter.FilterScale          = CAN_FILTERSCALE_32BIT;
+    filter.FilterIdHigh         = 0x0000U;
+    filter.FilterIdLow          = 0x0000U;
+    filter.FilterMaskIdHigh     = 0x0000U;
+    filter.FilterMaskIdLow      = 0x0000U;
+    filter.FilterFIFOAssignment = CAN_RX_FIFO0;
+    filter.FilterActivation     = ENABLE;
+    filter.SlaveStartFilterBank = 14U;
 
-    /* 复制数据 */
-    MEMCPY(Frame, &pBuffer->buffer[pBuffer->readIndex], sizeof(Can_FrameType));
-
-    /* 更新读指针 */
-    pBuffer->readIndex++;
-    if (pBuffer->readIndex >= CAN_TX_BUFFER_SIZE)
-    {
-        pBuffer->readIndex = 0;
-    }
-
-    pBuffer->count--;
-
-    return STD_OK;
-}
-
-/**
- * @brief CAN接收中断处理程序
- */
-void Mcal_Can_RxISR(void)
-{
-    /* 中断处理逻辑 */
-    /* 从硬件FIFO读取消息，加入缓冲区 */
+    (void)HAL_CAN_ConfigFilter(pHal, &filter);
 }
