@@ -32,11 +32,11 @@ extern "C" {
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "app_task_scheduler.h"
-#include "test_pwm.h"
-#include "test_can.h"
-#include "test_key.h"
-#include "test_nvm.h"
-#include "test_heat.h"
+// #include "test_pwm.h"
+// #include "test_can.h"
+// #include "test_key.h"
+// #include "test_nvm.h"
+// #include "test_heat.h"
 #include "stdio.h"   // For printf
 /* USER CODE END Includes */
 

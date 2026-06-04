@@ -9,6 +9,19 @@
 #include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\rte\rte_interface.h"
 #include "com.h"
 #include "common.h"
+#include "pwm_driver.h"
+
+/* ============= MCAL Actuator Interfaces (SR ports) ============= */
+
+void Rte_Pwm_SetDutyPercent_LED(uint8 duty)
+{
+    Pwm_SetDutyPercent(PWM_CH_LED, duty);
+}
+
+void Rte_Pwm_SetDutyPercent_Motor(uint8 duty)
+{
+    Pwm_SetDutyPercent(PWM_CH_MOTOR, duty);
+}
 
 /* ============= Vehicle Control Signals (RX from VCU) ============= */
 
@@ -32,6 +45,7 @@ Std_ReturnType Rte_Read_VehicleCtrl_Port_Motor_Switch_Cmd(uint8 *Data)
 
 Std_ReturnType Rte_Read_VehicleCtrl_Port_LED_Switch_Cmd(uint8 *Data)
 {
+	printf("Rte_Read_VehicleCtrl_Port_LED_Switch_Cmd\n");
     if (Data == NULL_PTR) return STD_NOT_OK;
     return Com_ReadSignal(COM_SIG_LED_SWITCH_CMD, (void *)Data);
 }
@@ -39,7 +53,7 @@ Std_ReturnType Rte_Read_VehicleCtrl_Port_LED_Switch_Cmd(uint8 *Data)
 Std_ReturnType Rte_Read_VehicleCtrl_Port_LED_Brightness_Level(uint8 *Data)
 {
     if (Data == NULL_PTR) return STD_NOT_OK;
-    return Com_ReadSignal(COM_SIG_VCU_ROLL_COUNTER, (void *)Data);
+    return Com_ReadSignal(COM_SIG_LED_BRIGHTNESS_LEVEL, (void *)Data);
 }
 
 /* ============= ECU Status Signals (TX to VCU) ============= */

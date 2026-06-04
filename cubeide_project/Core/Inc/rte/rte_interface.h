@@ -16,6 +16,20 @@ extern "C"
 #include "rte_types.h"
 #include "types.h"
 
+    /* ============= MCAL Actuator Interfaces (SR ports) ============= */
+
+    /**
+     * @brief 设置 LED PWM 占空比 (RTE → MCAL Pwm)
+     * @param[in] duty 占空比 (0-100%)
+     */
+    void Rte_Pwm_SetDutyPercent_LED(uint8 duty);
+
+    /**
+     * @brief 设置电机 PWM 占空比 (RTE → MCAL Pwm)
+     * @param[in] duty 占空比 (0-100%)
+     */
+    void Rte_Pwm_SetDutyPercent_Motor(uint8 duty);
+
     /* ============= Vehicle Control Signals (RX from VCU) ============= */
 
     /**

@@ -33,11 +33,13 @@
 #include "timer_driver.h"
 #include "pwm_driver.h"
 #include "spi_flash.h"
+#include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\asw\dim.h"
 
 /* BSW 接口头文件 */
 #include "canif.h"
 #include "com.h"
 #include "pdur.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -111,7 +113,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	float temperature=0.0f;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -169,16 +171,19 @@ int main(void)
   }
 
   /* ─── 原有测试模块初始化（兼容过渡） ─── */
-  Test_PWM_Init();         /* PWM 已由 MCAL Pwm_Init 启动，Test_PWM_Init 设置呼吸模式 */
+//  Test_PWM_Init();         /* PWM 已由 MCAL Pwm_Init 启动，Test_PWM_Init 设置呼吸模式 */
   /* Test_CAN_Init(); */   /* CAN 已由 MCAL Can_Init 启动 */
-  Test_Key_Init();
-  Test_NVM_Init();
+  // Test_Key_Init();
+  // Test_NVM_Init();
   Mcal_DS18B20_Init();
 
   /* ─── BSW 层初始化 ─── */
   CanIf_Init();
   Com_Init();
   PduR_Init();       /* PduR + CANtp 初始化 (注册 UDS 接收回调) */
+
+  /* ─── RTE + ASW 层初始化 ─── */
+  Rte_Init();        /* RTE 调度器初始化 */
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -209,9 +214,11 @@ int main(void)
 		  Com_MainFunction();                 /* Com 信号打包 + 周期发送 */
 		  PduR_MainFunction();                /* PduR + CANtp 状态机 (UDS收发+超时) */
 
-		  /* ── 原有测试任务 ── */
-		  Test_PWM_10ms_Task();
-		  Test_Key_10ms_Task();
+		  /* ── ASW 轮询 ── */
+//		  Dim_MainFunction();
+
+		  /* ── RTE + ASW 层 10ms Runnable ── */
+//		  Rte_MainFunction_10ms();            /* DIM(FAN) 10ms: LED+Motor */
 
 		  s_task10msFlag = 0;
 	  }
@@ -220,17 +227,16 @@ int main(void)
 		  /* ── MCAL BusOff 恢复 ── */
 		  Can_MainFunction_BusOff();
 
-		  /* ── 原有测试任务 ── */
-		  Test_CAN_100ms_Task();
+		  /* ── RTE + ASW 层 100ms Runnable ── */
+//		  Rte_MainFunction_100ms();           /* DIM(FAN) 100ms: 按键+方向 */
 
 		  s_task100msFlag = 0;
 	  }
 
 	  if (s_task1000msFlag) {
-		  if (Mcal_DS18B20_ReadTemperature(&temperature) == STD_OK) {
-			  printf("temperature: %.2f ℃\r\n", temperature);
-		  }
-		  // Test_NVM_1000ms_Task();
+		  /* ── RTE + ASW 层 1000ms Runnable ── */
+//		  Rte_MainFunction_1000ms();          /* DIM(HEATM) 1000ms: IGN+温度 */
+		  Dim_MainFunction();
 		  s_task1000msFlag = 0;
 	  }
   }

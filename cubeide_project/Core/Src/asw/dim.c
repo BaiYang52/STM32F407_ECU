@@ -17,7 +17,6 @@
 
 #include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\asw\dim.h"
 #include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\rte\rte_interface.h"
-#include "pwm_driver.h"
 #include "gpio_driver.h"
 #include "common.h"
 
@@ -44,32 +43,38 @@ static uint32 s_ignLostTick   = 0U;
  * 3. 若 ON: 计算占空比 = Brightness_Level * 10 (%)
  * 4. 写入 PWM 并反馈 LED_PWM_Duty 到 Com
  */
-void DIM_Run_LED_Breath(void)
+void Dim_MainFunction(void)
 {
-    uint8 brightness = 0U;
-    uint8 switchCmd  = 0U;
+    uint8 brightlev = 0U;
+    CmdType switchCmd  = cmd_off;
     uint8 pwmDuty    = 0U;
 
-    /* 读取 LED 亮度等级 (0-10) */
-    (void)Rte_Read_VehicleCtrl_Port_LED_Brightness_Level(&brightness);
-    /* 读取 LED 开关命令 */
-    (void)Rte_Read_VehicleCtrl_Port_LED_Switch_Cmd(&switchCmd);
-
-    if (switchCmd == 1U) {
+    //if not receive vehicle control message, turn off LED
+     if (Read_LED_Switch_Cmd_From_RxMessage(&switchCmd) != STD_OK) {
+         switchCmd = cmd_off;
+         printf("lost\n");
+     }
+     else
+     {
+        /* 读取 LED 亮度等级 (0-10) */
+        (void)Read_LED_Brightness_Level_From_RxMessage(&brightlev);
+        /* 读取 LED 开关命令 */
+        (void)Read_LED_Switch_Cmd_From_RxMessage(&switchCmd);
+     }
+     printf("brightlev%d switchCmd%d\n",brightlev,switchCmd);
+    if (switchCmd == cmd_on) {
         /* 亮度等级 → 百分比 */
-        if (brightness > 10U) {
-            brightness = 10U;
-        }
-        pwmDuty = (uint8)((uint16)brightness * 10U);
+        brightlev = brightlev > 10U? 10U : brightlev;
+        pwmDuty = (uint8)((uint16)brightlev * 10U); /* 0-10 → 0-100% */
     } else {
         pwmDuty = 0U;
     }
 
-    /* 设置 PWM */
-    Pwm_SetDutyPercent(PWM_CH_LED, pwmDuty);
+    /* 设置 PWM (通过 RTE interface) */
+    Rte_Pwm_SetDutyPercent_LED(pwmDuty);
 
     /* 反馈实际占空比到 Com */
-    (void)Rte_Write_EcuStatus_Port_LED_PWM_Duty(pwmDuty);
+    (void)Write_LED_PWM_Duty_To_TxMessage(pwmDuty);
 }
 
 /**

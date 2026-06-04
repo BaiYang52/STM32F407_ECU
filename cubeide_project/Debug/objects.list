@@ -12,6 +12,7 @@
 "./Core/Src/test_pwm.o"
 "./Core/Src/asw/dim.o"
 "./Core/Src/asw/fan.o"
+"./Core/Src/asw/heatm.o"
 "./Core/Src/bsw/canif/canif.o"
 "./Core/Src/bsw/cantp/cantp.o"
 "./Core/Src/bsw/com/com.o"

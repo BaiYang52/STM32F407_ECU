@@ -86,9 +86,9 @@ Rte_MainFunction_1000ms(void);
 /* ==================== ASW Runnable 声明 (由各 SWC .c 实现) ==================== */
 
 /**
- * @brief DIM — LED 呼吸灯 (10ms 周期)
+ * @brief DIM — DIM 主函数 (10ms 周期): LED呼吸 + 信号读写
  */
-void DIM_Run_LED_Breath(void);
+void Dim_MainFunction(void);
 
 /**
  * @brief DIM — 按键状态采集 + 车速信号检测 (100ms 周期)

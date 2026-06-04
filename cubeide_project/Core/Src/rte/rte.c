@@ -22,7 +22,7 @@ Rte_Init(void)
 FUNC(void, RTE_CODE)
 Rte_MainFunction_10ms(void)
 {
-    DIM_Run_LED_Breath();
+    Dim_MainFunction();
     FAN_Run_MotorPWM();
 }
 

@@ -69,9 +69,20 @@ extern boolean g_DIM_VehPrecondition;
 
 /* ==================== Runnable 声明 ==================== */
 
-void DIM_Run_LED_Breath(void);
+void Dim_MainFunction(void);
 void DIM_Run_KeyAndVehDetect(void);
 void DIM_Run_IGNDetect(void);
+
+typedef enum
+{
+    cmd_off = 0U,
+    cmd_on = 1U
+}CmdType;
+
+#define Read_LED_Brightness_Level_From_RxMessage Rte_Read_VehicleCtrl_Port_LED_Brightness_Level
+#define Read_LED_Switch_Cmd_From_RxMessage Rte_Read_VehicleCtrl_Port_LED_Switch_Cmd
+#define Write_LED_PWM_Duty_To_TxMessage Rte_Write_EcuStatus_Port_LED_PWM_Duty
+
 
 #ifdef __cplusplus
 }
