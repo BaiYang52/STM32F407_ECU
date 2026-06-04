@@ -1,4 +1,10 @@
-Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
+Core/Src/bsw/cantp/cantp.o: ../Core/Src/bsw/cantp/cantp.c \
+ E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/cantp.h \
+ ../Core/Inc/types.h ../Core/Inc/compiler.h \
+ E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/canif.h \
+ E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/can/can_types.h \
+ ../Core/Inc/common.h ../Core/Inc/types.h \
+ E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/timer/timer_driver.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  ../Core/Inc/stm32f4xx_hal_conf.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h \
@@ -31,24 +37,15 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
- ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- ../Core/Inc/app_task_scheduler.h ../Core/Inc/test_pwm.h \
- ../Core/Inc/test_can.h ../Core/Inc/test_key.h ../Core/Inc/test_nvm.h \
- ../Core/Inc/test_heat.h \
- E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/can/can_driver.h \
- E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/can/can_types.h \
- ../Core/Inc/types.h ../Core/Inc/compiler.h \
- E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/gpio/gpio_driver.h \
- E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/timer/timer_driver.h \
- E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/pwm/pwm_driver.h \
- E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/spi/spi_flash.h \
- E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/canif.h \
- E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/can/can_types.h \
- E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/com.h \
- E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/canif.h \
- E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/pdur.h \
- E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/cantp.h
-../Core/Inc/main.h:
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h
+E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/cantp.h:
+../Core/Inc/types.h:
+../Core/Inc/compiler.h:
+E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/canif.h:
+E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/can/can_types.h:
+../Core/Inc/common.h:
+../Core/Inc/types.h:
+E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/timer/timer_driver.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h:
 ../Core/Inc/stm32f4xx_hal_conf.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h:
@@ -82,23 +79,3 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
-../Core/Inc/app_task_scheduler.h:
-../Core/Inc/test_pwm.h:
-../Core/Inc/test_can.h:
-../Core/Inc/test_key.h:
-../Core/Inc/test_nvm.h:
-../Core/Inc/test_heat.h:
-E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/can/can_driver.h:
-E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/can/can_types.h:
-../Core/Inc/types.h:
-../Core/Inc/compiler.h:
-E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/gpio/gpio_driver.h:
-E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/timer/timer_driver.h:
-E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/pwm/pwm_driver.h:
-E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/spi/spi_flash.h:
-E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/canif.h:
-E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/can/can_types.h:
-E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/com.h:
-E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/canif.h:
-E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/pdur.h:
-E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/cantp.h:

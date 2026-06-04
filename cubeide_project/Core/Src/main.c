@@ -37,6 +37,7 @@
 /* BSW 接口头文件 */
 #include "canif.h"
 #include "com.h"
+#include "pdur.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -177,6 +178,7 @@ int main(void)
   /* ─── BSW 层初始化 ─── */
   CanIf_Init();
   Com_Init();
+  PduR_Init();       /* PduR + CANtp 初始化 (注册 UDS 接收回调) */
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -197,7 +199,7 @@ int main(void)
 //	  if (s_task1000msFlag) {
 //		  App_Task_1000ms();
 //	  }
-	  if (s_task10msFlag) {
+  if (s_task10msFlag) {
 		  /* ── MCAL 轮询 ── */
 		  Can_MainFunction_Write();           /* 发送缓冲区 → 硬件邮箱 */
 		  Fls_MainFunction();                 /* Flash 操作完成检查 */
@@ -205,6 +207,7 @@ int main(void)
 		  /* ── BSW 轮询 ── */
 		  CanIf_MainFunction();               /* CanIf 发送调度 */
 		  Com_MainFunction();                 /* Com 信号打包 + 周期发送 */
+		  PduR_MainFunction();                /* PduR + CANtp 状态机 (UDS收发+超时) */
 
 		  /* ── 原有测试任务 ── */
 		  Test_PWM_10ms_Task();

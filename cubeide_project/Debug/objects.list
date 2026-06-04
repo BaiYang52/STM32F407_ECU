@@ -12,6 +12,8 @@
 "./Core/Src/test_pwm.o"
 "./Core/Src/bsw/canif/canif.o"
 "./Core/Src/bsw/com/com.o"
+"./Core/Src/bsw/cantp/cantp.o"
+"./Core/Src/bsw/pdur/pdur.o"
 "./Core/Src/mcal/can/can_driver.o"
 "./Core/Src/mcal/can/can_interrupt.o"
 "./Core/Src/mcal/can/can_lowlevel.o"

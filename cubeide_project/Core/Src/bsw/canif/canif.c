@@ -6,12 +6,13 @@
  * 对接 MCAL Can 驱动，为上层的 CanTp/Dcm/Com 提供 PDU 级路由。
  *
  * 路由表基于 DBC 报文矩阵配置（参见 docs/AutoSarECU.DBC）:
- *   PDU 0: ECU_Status       (0x1A0, 50ms周期, ch1)
- *   PDU 1: ECU_LifeCycle    (0x3A0, 100ms周期, ch1)
- *   PDU 2: Vehicle_Ctrl     (0x210, 50ms周期, ch1, RX)
- *   PDU 3: ECU_NM_0x415     (0x415, 100ms周期, ch1)
- *   PDU 4: Diag_Req_ECU     (0x7A0, event, ch1, RX)
- *   PDU 5: Diag_Resp_ECU    (0x7A8, event, ch1, TX)
+ *   PDU 0: ECU_Status         (0x1A0, 50ms周期, ch1)
+ *   PDU 1: ECU_LifeCycle      (0x3A0, 100ms周期, ch1)
+ *   PDU 2: Vehicle_Ctrl       (0x210, 50ms周期, ch1, RX)
+ *   PDU 3: ECU_NM_0x415       (0x415, 100ms周期, ch1)
+ *   PDU 4: Diag_Req_ECU       (0x7A0, event, ch1, RX)
+ *   PDU 5: Diag_Resp_ECU      (0x7A8, event, ch1, TX)
+ *   PDU 6: Diag_Functional_Req (0x7DF, event, ch1, RX)
  */
 
 #include "canif.h"
@@ -42,6 +43,8 @@ static const CanIf_RxPduType s_rxPduMap[] = {
     {2U, 0x210U, 0x7FFU, 8U, CAN_CHANNEL_1, CAN_ID_STANDARD},
     /* PDU 4: Diag_Req_ECU (0x7A0, UDS request) */
     {4U, 0x7A0U, 0x7FFU, 8U, CAN_CHANNEL_1, CAN_ID_STANDARD},
+    /* PDU 6: Diag_Functional_Req (0x7DF, UDS functional) */
+    {6U, 0x7DFU, 0x7FFU, 8U, CAN_CHANNEL_1, CAN_ID_STANDARD},
 };
 
 /** RX PDU 数量 */
@@ -52,8 +55,11 @@ static const CanIf_RxPduType s_rxPduMap[] = {
 /** TX 完成通知回调 (由 Dcm 或 Com 注册) */
 static CanIf_TxConfirmation s_txCallback = NULL_PTR;
 
-/** RX 指示回调 (由 Dcm 或 Com 注册) */
-static CanIf_RxIndication  s_rxCallback = NULL_PTR;
+/** RX 指示回调 1 (由 Com 注册, 处理普通信号 PDU) */
+static CanIf_RxIndication  s_rxCallback1 = NULL_PTR;
+
+/** RX 指示回调 2 (由 CANtp/PduR 注册, 处理 UDS PDU) */
+static CanIf_RxIndication  s_rxCallback2 = NULL_PTR;
 
 /* ==================== 公开函数实现 ==================== */
 
@@ -132,14 +138,25 @@ CanIf_SetTxConfirmation(
 }
 
 /**
- * @brief 注册 RX 指示回调
+ * @brief 注册 RX 指示回调 1 (Com)
  */
 FUNC(void, CAN_CODE)
 CanIf_SetRxIndication(
     CanIf_RxIndication Callback
 )
 {
-    s_rxCallback = Callback;
+    s_rxCallback1 = Callback;
+}
+
+/**
+ * @brief 注册 RX 指示回调 2 (CANtp/PduR)
+ */
+FUNC(void, CAN_CODE)
+CanIf_SetRxIndication2(
+    CanIf_RxIndication Callback
+)
+{
+    s_rxCallback2 = Callback;
 }
 
 /**
@@ -184,8 +201,15 @@ CanIf_RxIndicationHandler(
             pdu.length = (Frame->dlc > s_rxPduMap[i].dlc)
                          ? s_rxPduMap[i].dlc : Frame->dlc;
 
-            if (s_rxCallback != NULL_PTR) {
-                s_rxCallback(&pdu);
+            /* 路由：UDS PDU (4/6) → CANtp, 其他 PDU (2) → Com */
+            if (s_rxPduMap[i].pduId == 4U || s_rxPduMap[i].pduId == 6U) {
+                if (s_rxCallback2 != NULL_PTR) {
+                    s_rxCallback2(&pdu);
+                }
+            } else {
+                if (s_rxCallback1 != NULL_PTR) {
+                    s_rxCallback1(&pdu);
+                }
             }
             return;
         }
