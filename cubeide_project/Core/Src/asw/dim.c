@@ -54,21 +54,21 @@ void Dim_MainFunction(void)
     (void)Get_Signal_State_ByCom(&signalstate);
 
     //if not receive vehicle control message, turn off LED
-	if (signalstate == 0U) {
+	if (signalstate == dim_msg_never_received) {
 		 pwmDuty = 0U;
 		 printf("msg_never_received\n");
 		 return;
 	}
-	else if(signalstate == 1U)
+	else if(signalstate == dim_msg_normal)
 	{
 		/* 读取 LED 亮度等级 (0-10) */
 		(void)Read_LED_Brightness_Level_From_RxMessage(&brightlev);
 		/* 读取 LED 开关命令 */
 		(void)Read_LED_Switch_Cmd_From_RxMessage(&switchCmd);
 	}
-	else
+	else /*signal timeout */
 	{
-
+		/* keep last pwm duty */
 	}
 
 	if (switchCmd == cmd_on) {

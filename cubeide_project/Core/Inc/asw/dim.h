@@ -81,12 +81,12 @@ typedef enum
 }CmdType;
 
 /* Signal State of Received Messages */
-//typedef enum
-//{
-//    msg_never_received = 0U,
-//    msg_normal = 1U,
-//    msg_timeout = 2U
-//}Com_SignalStateType;
+typedef enum
+{
+    dim_msg_never_received = 0U,
+	dim_msg_normal = 1U,
+	dim_msg_timeout = 2U
+}Dim_SignalStateType;
 
 #define Read_LED_Brightness_Level_From_RxMessage Rte_Read_VehicleCtrl_Port_LED_Brightness_Level
 #define Read_LED_Switch_Cmd_From_RxMessage Rte_Read_VehicleCtrl_Port_LED_Switch_Cmd
