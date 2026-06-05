@@ -69,8 +69,8 @@ static const Com_SignalType s_signalMap[COM_SIG_MAX] = {
     {COM_SIG_IGN_STATUS,             COM_PDU_VEHICLE_CTRL, 2U, 5U,  2U,  0U, COM_FORMAT_MOTOROLA}, /* DBC:20|2 → Byte2 bits5-4 */
     {COM_SIG_VEH_SPEED,              COM_PDU_VEHICLE_CTRL, 3U, 7U,  16U, 0U, COM_FORMAT_MOTOROLA}, /* DBC:24|16 → Byte3-4 */
     {COM_SIG_ENGINE_SPEED,           COM_PDU_VEHICLE_CTRL, 5U, 7U,  16U, 0U, COM_FORMAT_MOTOROLA}, /* DBC:40|16 → Byte5-6 */
-    {COM_SIG_MOTOR_SWITCH_CMD,       COM_PDU_VEHICLE_CTRL, 7U, 7U,  2U,  0U, COM_FORMAT_MOTOROLA}, /* DBC:56|2 → Byte7 bits7-6 */
-    {COM_SIG_LED_SWITCH_CMD,         COM_PDU_VEHICLE_CTRL, 7U, 5U,  2U,  0U, COM_FORMAT_MOTOROLA}, /* DBC:58|2 → Byte7 bits5-4 */
+    {COM_SIG_MOTOR_SWITCH_CMD,       COM_PDU_VEHICLE_CTRL, 7U, 1U,  2U,  0U, COM_FORMAT_MOTOROLA}, /* DBC:56|2 → Byte7 bits1-0 */
+    {COM_SIG_LED_SWITCH_CMD,         COM_PDU_VEHICLE_CTRL, 7U, 3U,  2U,  0U, COM_FORMAT_MOTOROLA}, /* DBC:58|2 → Byte7 bits3-2 */
 
     /* ========== ECU_NM_0x415 (TX, Intel @0+) ========== */
     {COM_SIG_NM_NID,         COM_PDU_ECU_NM,     0U, 0U, 8U, 0U, COM_FORMAT_INTEL},
@@ -330,7 +330,6 @@ Com_WriteSignal(Com_SignalIdType SignalId, CONSTP2VAR(void, AUTOMATIC, COM_APPL_
 FUNC(Std_ReturnType, COM_CODE)
 Com_ReadSignal(Com_SignalIdType SignalId, P2VAR(void, AUTOMATIC, COM_APPL_DATA) SignalData)
 {
-    printf("Enter Com_ReadSignal\n");
     if (SignalId >= COM_SIG_MAX || SignalData == NULL_PTR) return STD_NOT_OK;
 
     const Com_SignalType *pSig = &s_signalMap[SignalId];
@@ -346,12 +345,18 @@ Com_ReadSignal(Com_SignalIdType SignalId, P2VAR(void, AUTOMATIC, COM_APPL_DATA) 
 }
 
 FUNC(boolean, COM_CODE)
-Com_GetSignalTimeout(Com_SignalIdType SignalId)
+Com_GetSignalState(Com_SignalIdType SignalId,Com_SignalStateType *SignalState)
 {
     (void)SignalId;
-    if (s_rxTimestamp == 0U) return TRUE;
-    if ((HAL_GetTick() - s_rxTimestamp) > COM_RX_TIMEOUT_MS) return TRUE;
-    return FALSE;
+    if (s_rxTimestamp == 0U) {
+        *SignalState = msg_never_received;
+    }
+    if ((HAL_GetTick() - s_rxTimestamp) > COM_RX_TIMEOUT_MS) {
+        *SignalState = msg_timeout;
+    }
+    
+    *SignalState = msg_normal;
+    return TRUE;
 }
 
 void Com_RxIndication(const CanIf_Pdu *Pdu)
@@ -379,3 +384,27 @@ void Com_RxIndication(const CanIf_Pdu *Pdu)
         }
     }
 }
+
+//For test
+ FUNC(void, COM_CODE)
+ Com_TestFunction(void)
+ {
+     uint8 ledlvl=0U;
+     uint8 ignstatus=0U;
+     uint16 vehspeed=0U;
+     uint16 enginespeed=0U;
+     uint8 motorcmd=0U;
+     uint8 ledcmd=0U;
+     Com_ReadSignal(COM_SIG_LED_BRIGHTNESS_LEVEL,&ledlvl);
+     printf("ledlvl%d\n",ledlvl);
+     Com_ReadSignal(COM_SIG_IGN_STATUS,&ignstatus);
+     printf("ignstatus%d\n",ignstatus);
+     Com_ReadSignal(COM_SIG_VEH_SPEED,&vehspeed);
+     printf("vehspeed%d\n",vehspeed);
+     Com_ReadSignal(COM_SIG_ENGINE_SPEED,&enginespeed);
+     printf("enginespeed %d\n",enginespeed);
+     Com_ReadSignal(COM_SIG_MOTOR_SWITCH_CMD,&motorcmd);
+     printf("motorcmd %d\n",motorcmd);
+     Com_ReadSignal(COM_SIG_LED_SWITCH_CMD,&ledcmd);
+     printf("ledcmd %d\n",ledcmd);
+ }

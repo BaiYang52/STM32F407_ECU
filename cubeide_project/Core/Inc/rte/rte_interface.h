@@ -127,6 +127,9 @@ extern "C"
      */
     Std_ReturnType Rte_Read_EcuNM_Port_NM_Wakeup_Reason(uint8 *Data);
 
+    Std_ReturnType Rte_Read_VehicleCtrl_Signal_State(uint8 *state);
+
+
 #ifdef __cplusplus
 }
 #endif

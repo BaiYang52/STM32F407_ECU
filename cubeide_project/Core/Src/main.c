@@ -237,6 +237,7 @@ int main(void)
 		  /* ── RTE + ASW 层 1000ms Runnable ── */
 //		  Rte_MainFunction_1000ms();          /* DIM(HEATM) 1000ms: IGN+温度 */
 		  Dim_MainFunction();
+//		  Com_TestFunction();
 		  s_task1000msFlag = 0;
 	  }
   }

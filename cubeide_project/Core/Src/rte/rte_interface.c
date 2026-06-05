@@ -45,7 +45,6 @@ Std_ReturnType Rte_Read_VehicleCtrl_Port_Motor_Switch_Cmd(uint8 *Data)
 
 Std_ReturnType Rte_Read_VehicleCtrl_Port_LED_Switch_Cmd(uint8 *Data)
 {
-	printf("Rte_Read_VehicleCtrl_Port_LED_Switch_Cmd\n");
     if (Data == NULL_PTR) return STD_NOT_OK;
     return Com_ReadSignal(COM_SIG_LED_SWITCH_CMD, (void *)Data);
 }
@@ -54,6 +53,12 @@ Std_ReturnType Rte_Read_VehicleCtrl_Port_LED_Brightness_Level(uint8 *Data)
 {
     if (Data == NULL_PTR) return STD_NOT_OK;
     return Com_ReadSignal(COM_SIG_LED_BRIGHTNESS_LEVEL, (void *)Data);
+}
+
+Std_ReturnType Rte_Read_VehicleCtrl_Signal_State(uint8 *state)
+{
+    if (state == NULL_PTR) return STD_NOT_OK;
+    return Com_GetSignalState(COM_SIG_LED_SWITCH_CMD, (void *)state);
 }
 
 /* ============= ECU Status Signals (TX to VCU) ============= */
