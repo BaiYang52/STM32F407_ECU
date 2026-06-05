@@ -71,6 +71,13 @@ typedef enum
     COM_SIG_MAX                    /**< 信号总数 */
 } Com_SignalIdType;
 
+typedef enum
+{
+    msg_never_received = 0U,
+    msg_normal = 1U,
+    msg_timeout = 2U
+}Com_SignalStateType;
+
 /* ==================== PDU ID 枚举 ==================== */
 
 #define COM_PDU_ECU_STATUS     0U
@@ -129,11 +136,13 @@ Com_ReadSignal(
  * @brief 获取信号超时状态
  *
  * @param[in] SignalId 信号 ID
+ * @param[out] SignalState 信号状态指针
  * @return boolean TRUE = 超时
  */
 FUNC(boolean, COM_CODE)
-Com_GetSignalTimeout(
-    Com_SignalIdType SignalId
+Com_GetSignalState(
+    Com_SignalIdType SignalId,
+    Com_SignalStateType *SignalState
 );
 
 /**
@@ -144,6 +153,9 @@ Com_GetSignalTimeout(
 void Com_RxIndication(
     CONSTP2CONST(CanIf_Pdu, AUTOMATIC, COM_APPL_DATA) Pdu
 );
+
+/*Com Test function */
+FUNC(void, COM_CODE) Com_TestFunction(void);
 
 #ifdef __cplusplus
 }

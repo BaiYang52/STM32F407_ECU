@@ -73,16 +73,26 @@ void Dim_MainFunction(void);
 void DIM_Run_KeyAndVehDetect(void);
 void DIM_Run_IGNDetect(void);
 
+/* switch cmd type of Received Messages */
 typedef enum
 {
     cmd_off = 0U,
     cmd_on = 1U
 }CmdType;
 
+/* Signal State of Received Messages */
+//typedef enum
+//{
+//    msg_never_received = 0U,
+//    msg_normal = 1U,
+//    msg_timeout = 2U
+//}Com_SignalStateType;
+
 #define Read_LED_Brightness_Level_From_RxMessage Rte_Read_VehicleCtrl_Port_LED_Brightness_Level
 #define Read_LED_Switch_Cmd_From_RxMessage Rte_Read_VehicleCtrl_Port_LED_Switch_Cmd
 #define Write_LED_PWM_Duty_To_TxMessage Rte_Write_EcuStatus_Port_LED_PWM_Duty
-
+#define Set_LED_PWM_DutyPercent_ByPwmDriver Rte_Pwm_SetDutyPercent_LED
+#define Get_Signal_State_ByCom Rte_Read_VehicleCtrl_Signal_State
 
 #ifdef __cplusplus
 }
