@@ -44,10 +44,7 @@ void HAL_SYSTICK_Callback(void)
 {
     // 这个函数会在每个HAL_IncTick()后自动调用
     // 默认1ms调用一次
-    s_task10msCounter++;
-    if (s_task1msCounter%10==0) {
-        s_task1msFlag = 1;  // 标记10ms任务可以运行
-    }
+    s_task1msFlag = 1;  // 标记10ms任务可以运行
 
     s_task10msCounter++;
     if (s_task10msCounter%10==0) {

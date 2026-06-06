@@ -623,6 +623,11 @@ static Std_ReturnType Dcm_Service_DiagnosticSessionControl_0x10(
         return E_NOT_OK;
     }
 
+    if (RequestLength > 2U) {
+        Dcm_Global_NegativeResponseCode = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
+        return E_NOT_OK;
+    }
+
     retVal = Dcm_SwitchSession(newSession);
     if (retVal != E_OK) {
         /* Dcm_SwitchSession 已设置具体 NRC (0x33/0x7E 等)，此处不要覆盖 */
