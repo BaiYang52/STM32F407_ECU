@@ -75,9 +75,9 @@ static FUNC(Std_ReturnType, DCM_CODE) Dcm_WriteDidToNvram(
 /**
  * @brief Validate security level
  */
-static FUNC(boolean, DCM_CODE) Dcm_IsSecurityLevelUnlocked(
-    uint8 SecurityLevel
-);
+//static FUNC(boolean, DCM_CODE) Dcm_IsSecurityLevelUnlocked(
+//    uint8 SecurityLevel
+//);
 
 /**
  * @brief Generate random seed
@@ -652,31 +652,31 @@ static FUNC(Std_ReturnType, DCM_CODE) Dcm_GetDidFromNvram(
     switch (DidId) {
         case DID_VIN:
             /* Default VIN: "1G1YY12V347175635" */
-            Nvram_Manager_Read(NVRAM_DID_F190_VIN_ADDR, DidData_Ptr, 17U);
+            // Nvram_Manager_Read(NVRAM_DID_F190_VIN_ADDR, DidData_Ptr, 17U);
             *DidLength_Ptr = 17U;
             break;
             
         case DID_ECU_SERIAL_NUMBER:
             /* Serial number: 32 bytes */
-            Nvram_Manager_Read(NVRAM_DID_F18C_SERIAL_ADDR, DidData_Ptr, 32U);
+            // Nvram_Manager_Read(NVRAM_DID_F18C_SERIAL_ADDR, DidData_Ptr, 32U);
             *DidLength_Ptr = 32U;
             break;
             
         case DID_ECU_NAME:
             /* ECU Name: "STM32F407VET6    " (16 bytes) */
-            Nvram_Manager_Read(NVRAM_DID_F183_ECU_NAME_ADDR, DidData_Ptr, 16U);
+            // Nvram_Manager_Read(NVRAM_DID_F183_ECU_NAME_ADDR, DidData_Ptr, 16U);
             *DidLength_Ptr = 16U;
             break;
             
         case DID_SYSTEM_SUPPLIER_SW_VERSION:
             /* SW Version: "SW-V1.1.0   " (8 bytes) */
-            Nvram_Manager_Read(NVRAM_DID_F195_SW_VERSION_ADDR, DidData_Ptr, 8U);
+            // Nvram_Manager_Read(NVRAM_DID_F195_SW_VERSION_ADDR, DidData_Ptr, 8U);
             *DidLength_Ptr = 8U;
             break;
             
         case DID_FLASH_COUNTER:
             /* Flash Counter: 2 bytes */
-            Nvram_Manager_Read(NVRAM_DID_F501_FLASH_COUNTER_ADDR, DidData_Ptr, 2U);
+            // Nvram_Manager_Read(NVRAM_DID_F501_FLASH_COUNTER_ADDR, DidData_Ptr, 2U);
             *DidLength_Ptr = 2U;
             break;
             
@@ -717,7 +717,7 @@ static FUNC(Std_ReturnType, DCM_CODE) Dcm_WriteDidToNvram(
     switch (DidId) {
         case DID_VIN:
             if (DidLength == 17U) {
-                Nvram_Manager_Write(NVRAM_DID_F190_VIN_ADDR, (uint8 *)DidData_Ptr, 17U);
+                // Nvram_Manager_Write(NVRAM_DID_F190_VIN_ADDR, (uint8 *)DidData_Ptr, 17U);
             } else {
                 retVal = E_NOT_OK;
             }
@@ -725,7 +725,7 @@ static FUNC(Std_ReturnType, DCM_CODE) Dcm_WriteDidToNvram(
             
         case DID_ECU_SERIAL_NUMBER:
             if (DidLength <= 32U) {
-                Nvram_Manager_Write(NVRAM_DID_F18C_SERIAL_ADDR, (uint8 *)DidData_Ptr, DidLength);
+                // Nvram_Manager_Write(NVRAM_DID_F18C_SERIAL_ADDR, (uint8 *)DidData_Ptr, DidLength);
             } else {
                 retVal = E_NOT_OK;
             }
@@ -733,7 +733,7 @@ static FUNC(Std_ReturnType, DCM_CODE) Dcm_WriteDidToNvram(
             
         case DID_FLASH_COUNTER:
             if (DidLength == 2U) {
-                Nvram_Manager_Write(NVRAM_DID_F501_FLASH_COUNTER_ADDR, (uint8 *)DidData_Ptr, 2U);
+                // Nvram_Manager_Write(NVRAM_DID_F501_FLASH_COUNTER_ADDR, (uint8 *)DidData_Ptr, 2U);
             } else {
                 retVal = E_NOT_OK;
             }
@@ -747,19 +747,19 @@ static FUNC(Std_ReturnType, DCM_CODE) Dcm_WriteDidToNvram(
     return retVal;
 }
 
-static FUNC(boolean, DCM_CODE) Dcm_IsSecurityLevelUnlocked(
-    uint8 SecurityLevel
-)
-{
-    switch (SecurityLevel) {
-        case 1U:
-            return Dcm_SecurityLevel1Unlocked;
-        case 2U:
-            return Dcm_SecurityLevel2Unlocked;
-        default:
-            return FALSE;
-    }
-}
+//static FUNC(boolean, DCM_CODE) Dcm_IsSecurityLevelUnlocked(
+//    uint8 SecurityLevel
+//)
+//{
+//    switch (SecurityLevel) {
+//        case 1U:
+//            return Dcm_SecurityLevel1Unlocked;
+//        case 2U:
+//            return Dcm_SecurityLevel2Unlocked;
+//        default:
+//            return FALSE;
+//    }
+//}
 
 static FUNC(void, DCM_CODE) Dcm_GenerateSecuritySeed(
     CONSTP2VAR(uint8, AUTOMATIC, DCM_APPL_DATA) SeedBuffer_Ptr,

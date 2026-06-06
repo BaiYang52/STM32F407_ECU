@@ -216,12 +216,15 @@ CanTp_MainFunction(void)
             /* 交付 N-SDU 给上层 */
             if (ch->rxComplete && (s_rxCallback != NULL_PTR)) {
                 CanTp_PduInfoType pduInfo;
+                uint8 channelId = ch->channelId;
+
                 pduInfo.data           = ch->rxBuffer;
                 pduInfo.length         = (uint16)ch->rxLength;
                 pduInfo.protocolResult = 0U;
-                s_rxCallback(ch->channelId, &pduInfo);
                 ch->rxComplete = FALSE;
+                /* 先释放通道，上层回调可能立即调用 CanTp_Transmit 发送响应 */
                 CanTp_ResetChannel(ch);
+                s_rxCallback(channelId, &pduInfo);
             }
             break;
 

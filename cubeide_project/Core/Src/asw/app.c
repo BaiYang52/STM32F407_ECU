@@ -31,6 +31,8 @@ void APP_MainFunction(void);
 void APP_Run_KeyState(void);
 APP_KeyStateType APP_Get_Key1DebounceState(void);
 APP_KeyStateType APP_Get_Key0DebounceState(void);
+#define KEY_STUCK_DEBOUNCE 30000U
+#define KEY_UNPRESSED_STATE 0x07U /* 0b 0000 0111 30ms debounce time */
 /* ==================== Runnable 实现 ==================== */
 
 /**
@@ -68,25 +70,25 @@ void APP_Run_KeyState(void)
 APP_KeyStateType APP_Get_Key1DebounceState(void)
 {
 	static uint16 u_KeyPressTime = 0U; /* 初始按压时间: 0*10ms =0ms */
-	static uint8 u_KeyBitState = 0x07U; /* 初始状态: 0b00000111 (未按) */
+	static uint8 u_KeyBitState = KEY_UNPRESSED_STATE; /* 初始状态: 0b00000111 (未按) */
 	static APP_KeyStateType lastKeyState = e_KEY_NOT_PRESSED;
 	uint8 xorval = 0x01;
 	u_KeyBitState <<= 1;
 	xorval = (uint8)Rte_Read_Key1_State();
-	u_KeyBitState = (u_KeyBitState|xorval) & 0x07U; /* 读 KEY1 状态 */
+	u_KeyBitState = (u_KeyBitState|xorval) & KEY_UNPRESSED_STATE; /* 读 KEY1 状态 */
 	//u_KeyBitState = (u_KeyBitState|(uint8)Rte_Read_Key1_State()) & 0x07U; /* 读 KEY1 状态 */
 
 	if (u_KeyBitState == 0x00U) {
 		u_KeyPressTime++;
-		if (u_KeyPressTime >= 1000U) { /* 长按判定: 100*10ms = 1000ms = 1s */
-			u_KeyPressTime = 1000U; /* 防止溢出 */
+		if (u_KeyPressTime >= KEY_STUCK_DEBOUNCE) { /* 长按判定: 100*10ms = 1000ms = 1s */
+			u_KeyPressTime = KEY_STUCK_DEBOUNCE; /* 防止溢出 */
 			return lastKeyState = e_KEY_INVALID; /* 长按超过 1s，判定为无效 */
 		}
 		else {
 			return lastKeyState = e_KEY_PRESSED; /* 按下 */
 		}
 	}
-	else if (u_KeyBitState == 0x07U) {
+	else if (u_KeyBitState == KEY_UNPRESSED_STATE) {
 		u_KeyPressTime = 0U; /* 释放，复位按压时间 */
 		return lastKeyState = e_KEY_NOT_PRESSED;
 	}
@@ -98,18 +100,18 @@ APP_KeyStateType APP_Get_Key1DebounceState(void)
 APP_KeyStateType APP_Get_Key0DebounceState(void)
 {
 	static uint16 u_KeyPressTime = 0U; /* 初始按压时间: 0*10ms =0ms */
-	static uint8 u_KeyBitState = 0x07U; /* 初始状态: 0b00000111 (未按) */
+	static uint8 u_KeyBitState = KEY_UNPRESSED_STATE; /* 初始状态: 0b00000111 (未按) */
 	static APP_KeyStateType lastKeyState = e_KEY_NOT_PRESSED;
 	uint8 xorval = 0x01;
 	u_KeyBitState <<= 1;
 	xorval = (uint8)Rte_Read_Key0_State();
-	u_KeyBitState = (u_KeyBitState|xorval) & 0x07U; /* 读 KEY1 状态 */
+	u_KeyBitState = (u_KeyBitState|xorval) & KEY_UNPRESSED_STATE; /* 读 KEY1 状态 */
 	//u_KeyBitState = (u_KeyBitState|(uint8)Rte_Read_Key0_State()) & 0x07U; /* 读 KEY1 状态 */
 
 	if (u_KeyBitState == 0x00U) {
 		u_KeyPressTime++;
-		if (u_KeyPressTime >= 1000U) { /* 长按判定: 100*10ms = 1000ms = 1s */
-			u_KeyPressTime = 1000U; /* 防止溢出 */
+		if (u_KeyPressTime >= KEY_STUCK_DEBOUNCE) { /* 长按判定: 100*10ms = 1000ms = 1s */
+			u_KeyPressTime = KEY_STUCK_DEBOUNCE; /* 防止溢出 */
 			printf("u_KeyPressTime:%d",u_KeyPressTime);
 			return lastKeyState = e_KEY_INVALID; /* 长按超过 1s，判定为无效 */
 		}
@@ -117,7 +119,7 @@ APP_KeyStateType APP_Get_Key0DebounceState(void)
 			return lastKeyState = e_KEY_PRESSED; /* 按下 */
 		}
 	}
-	else if (u_KeyBitState == 0x07U) {
+	else if (u_KeyBitState == KEY_UNPRESSED_STATE) {
 		u_KeyPressTime = 0U; /* 释放，复位按压时间 */
 		return lastKeyState = e_KEY_NOT_PRESSED;
 	}

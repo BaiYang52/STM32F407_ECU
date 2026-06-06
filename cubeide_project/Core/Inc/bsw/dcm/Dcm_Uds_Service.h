@@ -1,20 +1,12 @@
 /**
- * @file Dcm.h
+ * @file Dcm_Uds_Services.h
  * @brief UDS Diagnostic Services Header File - AUTOSAR Style
  * @author STM32 ECU Demo
  * @date 2024
- *
+ * 
  * This file defines UDS service interfaces following AUTOSAR DCM module standards.
- * Supports:
- *   - 0x10: DiagnosticSessionControl
- *   - 0x11: ECUReset
- *   - 0x22: ReadDataByIdentifier
- *   - 0x27: SecurityAccess
- *   - 0x28: CommunicationControl
- *   - 0x2E: WriteDataByIdentifier
- *   - 0x31: RoutineControl
- *   - 0x3E: TesterPresent
- *   - 0x85: ControlDTCSetting
+ * Supports: 0x22 (ReadDataByIdentifier), 0x2E (WriteDataByIdentifier), 
+ *           0x31 (RoutineControl), 0x27 (SecurityAccess)
  */
 
 #ifndef DCM_UDS_SERVICES_H
@@ -89,11 +81,6 @@ extern "C" {
 #define RID_ADC_INPUT_TEST                          0x0308U
 #define RID_FORCE_BUS_OFF                           0x0309U
 #define RID_WATCHDOG_RESET_TEST                     0x030AU
-
-/* DiagnosticSession Types */
-#define DCM_SESSION_DEFAULT                         0x01U
-#define DCM_SESSION_PROGRAMMING                     0x02U
-#define DCM_SESSION_EXTENDED                        0x03U
 
 /* Return Types */
 typedef uint8 Std_ReturnType;
@@ -179,96 +166,22 @@ typedef struct {
 } Dcm_RoutineControlType;
 
 /*******************************************************************************
- * GLOBAL VARIABLES (跨模块共享)
+ * PUBLIC FUNCTION DECLARATIONS
  *******************************************************************************/
 
 /**
- * @brief 全局否定响应码
+ * @brief Read Data By Identifier Service (0x22)
+ * 
+ * UDS Service 0x22 implementation for reading diagnostic data identifiers.
+ * Supported DIDs: 0xF180, 0xF183, 0xF18A, 0xF18C, 0xF190, 0xF193, 0xF195, etc.
  *
- * 当外部服务文件 (如 Dcm_Uds_ECUReset.c) 需要返回特定的 NRC 时,
- * 设置此变量后由 Dcm.c 的 dispatcher 读取并构建否定响应。
+ * @param[in]  Dcm_Ptr              Pointer to the DCM service request
+ * @param[out] RespData_Ptr         Pointer to response data buffer
+ * @param[in]  RespData_Len_Ptr     Pointer to response data length
+ * @param[out] ErrorCode_Ptr        Pointer to negative response code
+ * 
+ * @return     E_OK on success, E_NOT_OK on failure
  */
-extern uint8 Dcm_Global_NegativeResponseCode;
-
-/*******************************************************************************
- * DCM CORE FUNCTION DECLARATIONS
- *******************************************************************************/
-
-/**
- * @brief DCM 初始化
- *
- * 注册回调到 PduR, 初始化内部状态变量。
- */
-FUNC(void, DCM_CODE) Dcm_Init(void);
-
-/**
- * @brief DCM 主函数 (每 10ms 周期调用)
- *
- * 处理 S3 超时 (自动回退到 Default Session)
- */
-FUNC(void, DCM_CODE) Dcm_MainFunction(void);
-
-/**
- * @brief 获取当前诊断会话
- * @return 当前会话 ID (0x01/0x02/0x03)
- */
-FUNC(uint8, DCM_CODE) Dcm_GetCurrentSession(void);
-
-/**
- * @brief 获取安全级别
- * @return 当前安全级别 (0/1/2)
- */
-FUNC(uint8, DCM_CODE) Dcm_GetSecurityLevel(void);
-
-/**
- * @brief 检查安全级别是否解锁
- * @param[in] SecurityLevel  安全级别 (1/2)
- * @return TRUE 已解锁, FALSE 未解锁
- */
-FUNC(boolean, DCM_CODE) Dcm_IsSecurityLevelUnlocked(uint8 SecurityLevel);
-
-/**
- * @brief 设置安全级别状态
- * @param[in] SecurityLevel  安全级别 (1/2)
- * @param[in] Unlocked       TRUE=解锁, FALSE=锁定
- */
-FUNC(void, DCM_CODE) Dcm_SetSecurityLevel(uint8 SecurityLevel, boolean Unlocked);
-
-/**
- * @brief 获取 DTC 设置状态
- * @return TRUE=允许 DTC, FALSE=禁止 DTC
- */
-FUNC(boolean, DCM_CODE) Dcm_GetDTCSettingEnabled(void);
-
-/**
- * @brief 设置 DTC 设置状态
- * @param[in] Enabled  TRUE=允许, FALSE=禁止
- */
-FUNC(void, DCM_CODE) Dcm_SetDTCSettingEnabled(boolean Enabled);
-
-/**
- * @brief 获取通信控制状态
- * @return 通信状态 (0x00/0x01/0x03)
- */
-FUNC(uint8, DCM_CODE) Dcm_GetCommState(void);
-
-/**
- * @brief 设置通信控制状态
- * @param[in] CommState  通信状态 (0x00=Enable/0x01=RxOnly/0x03=Disable)
- */
-FUNC(void, DCM_CODE) Dcm_SetCommState(uint8 CommState);
-
-/**
- * @brief 复位 TesterPresent 定时器
- */
-FUNC(void, DCM_CODE) Dcm_TesterPresentReset(void);
-
-/*******************************************************************************
- * UDS SERVICE FUNCTION DECLARATIONS
- *******************************************************************************/
-
-/* ==================== 0x22: ReadDataByIdentifier ==================== */
-
 FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ReadDataByIdentifier_0x22(
     CONSTP2CONST(Dcm_MsgType, AUTOMATIC, DCM_APPL_DATA) Dcm_Ptr,
     CONSTP2VAR(Dcm_MsgType, AUTOMATIC, DCM_APPL_DATA) RespData_Ptr,
@@ -276,33 +189,95 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ReadDataByIdentifier_0x22(
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
+/**
+ * @brief Read DID F190 (VIN)
+ * 
+ * FUNC macro style: Returns Std_ReturnType
+ * Implementation of reading Vehicle Identification Number
+ *
+ * @param[out] VinData_Ptr    Pointer to VIN data structure
+ * @param[out] ErrorCode_Ptr  Pointer to error code
+ * 
+ * @return     E_OK if read successful
+ */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF190_Vin(
     CONSTP2VAR(Dcm_Did_F190_VinType, AUTOMATIC, DCM_APPL_DATA) VinData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
+/**
+ * @brief Read DID F18C (ECU Serial Number)
+ * 
+ * Implementation of reading ECU Serial Number
+ *
+ * @param[out] SerialData_Ptr Pointer to serial number data structure
+ * @param[out] ErrorCode_Ptr  Pointer to error code
+ * 
+ * @return     E_OK if read successful
+ */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF18C_Serial(
     CONSTP2VAR(Dcm_Did_F18C_SerialType, AUTOMATIC, DCM_APPL_DATA) SerialData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
+/**
+ * @brief Read DID F183 (ECU Name)
+ * 
+ * Implementation of reading ECU Name
+ *
+ * @param[out] EcuNameData_Ptr  Pointer to ECU name data structure
+ * @param[out] ErrorCode_Ptr    Pointer to error code
+ * 
+ * @return     E_OK if read successful
+ */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF183_EcuName(
     CONSTP2VAR(Dcm_Did_F183_EcuNameType, AUTOMATIC, DCM_APPL_DATA) EcuNameData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
+/**
+ * @brief Read DID F195 (Software Version)
+ * 
+ * Implementation of reading Software Version Number
+ *
+ * @param[out] SwVersionData_Ptr  Pointer to SW version data structure
+ * @param[out] ErrorCode_Ptr      Pointer to error code
+ * 
+ * @return     E_OK if read successful
+ */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF195_SwVersion(
     CONSTP2VAR(Dcm_Did_F195_SwVersionType, AUTOMATIC, DCM_APPL_DATA) SwVersionData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
+/**
+ * @brief Read DID F501 (Flash Counter)
+ * 
+ * Implementation of reading Flash Write Counter
+ *
+ * @param[out] FlashCounterData_Ptr  Pointer to flash counter data structure
+ * @param[out] ErrorCode_Ptr         Pointer to error code
+ * 
+ * @return     E_OK if read successful
+ */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF501_FlashCounter(
     CONSTP2VAR(Dcm_Did_F501_FlashCounterType, AUTOMATIC, DCM_APPL_DATA) FlashCounterData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
-/* ==================== 0x2E: WriteDataByIdentifier ==================== */
-
+/**
+ * @brief Write Data By Identifier Service (0x2E)
+ * 
+ * UDS Service 0x2E implementation for writing diagnostic data identifiers.
+ * Supported DIDs: 0xF190, 0xF198, 0xF199, 0xF200, 0xF201, 0xF501
+ *
+ * @param[in]  Dcm_Ptr              Pointer to the DCM service request
+ * @param[out] RespData_Ptr         Pointer to response data buffer
+ * @param[in]  RespData_Len_Ptr     Pointer to response data length
+ * @param[out] ErrorCode_Ptr        Pointer to negative response code
+ * 
+ * @return     E_OK on success, E_NOT_OK on failure
+ */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_WriteDataByIdentifier_0x2E(
     CONSTP2CONST(Dcm_MsgType, AUTOMATIC, DCM_APPL_DATA) Dcm_Ptr,
     CONSTP2VAR(Dcm_MsgType, AUTOMATIC, DCM_APPL_DATA) RespData_Ptr,
@@ -310,46 +285,34 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_WriteDataByIdentifier_0x2E(
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
+/**
+ * @brief Write DID F190 (VIN)
+ * 
+ * Implementation of writing Vehicle Identification Number
+ *
+ * @param[in]  VinData_Ptr     Pointer to VIN data to write
+ * @param[out] ErrorCode_Ptr   Pointer to error code
+ * 
+ * @return     E_OK if write successful
+ */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF190_Vin(
     CONSTP2CONST(Dcm_Did_F190_VinType, AUTOMATIC, DCM_APPL_DATA) VinData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
-/* ==================== 0x27: SecurityAccess ==================== */
-
-FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_SecurityAccess_0x27(
-    CONSTP2CONST(Dcm_MsgType, AUTOMATIC, DCM_APPL_DATA) Dcm_Ptr,
-    CONSTP2VAR(Dcm_MsgType, AUTOMATIC, DCM_APPL_DATA) RespData_Ptr,
-    CONSTP2VAR(uint16, AUTOMATIC, DCM_APPL_DATA) RespData_Len_Ptr,
-    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
-);
-
-FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestSeed_Level1(
-    CONSTP2VAR(uint8, AUTOMATIC, DCM_APPL_DATA) SeedData_Ptr,
-    CONSTP2VAR(uint16, AUTOMATIC, DCM_APPL_DATA) SeedLength_Ptr,
-    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
-);
-
-FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level1(
-    CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) KeyData_Ptr,
-    uint16 KeyLength,
-    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
-);
-
-FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestSeed_Level2(
-    CONSTP2VAR(uint8, AUTOMATIC, DCM_APPL_DATA) SeedData_Ptr,
-    CONSTP2VAR(uint16, AUTOMATIC, DCM_APPL_DATA) SeedLength_Ptr,
-    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
-);
-
-FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level2(
-    CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) KeyData_Ptr,
-    uint16 KeyLength,
-    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
-);
-
-/* ==================== 0x31: RoutineControl ==================== */
-
+/**
+ * @brief Routine Control Service (0x31)
+ * 
+ * UDS Service 0x31 implementation for routine control.
+ * Supports: StartRoutine (0x01), StopRoutine (0x02), RequestRoutineResults (0x03)
+ *
+ * @param[in]  Dcm_Ptr              Pointer to the DCM service request
+ * @param[out] RespData_Ptr         Pointer to response data buffer
+ * @param[in]  RespData_Len_Ptr     Pointer to response data length
+ * @param[out] ErrorCode_Ptr        Pointer to negative response code
+ * 
+ * @return     E_OK on success, E_NOT_OK on failure
+ */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_RoutineControl_0x31(
     CONSTP2CONST(Dcm_MsgType, AUTOMATIC, DCM_APPL_DATA) Dcm_Ptr,
     CONSTP2VAR(Dcm_MsgType, AUTOMATIC, DCM_APPL_DATA) RespData_Ptr,
@@ -357,6 +320,19 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_RoutineControl_0x31(
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
+/**
+ * @brief Start Routine 0x0201 (Erase Memory)
+ * 
+ * Erases application memory area
+ *
+ * @param[in]  InputData_Ptr      Pointer to input data (memory address + size)
+ * @param[in]  InputLength        Length of input data
+ * @param[out] OutputData_Ptr     Pointer to output data (erase result)
+ * @param[out] OutputLength_Ptr   Pointer to output data length
+ * @param[out] ErrorCode_Ptr      Pointer to error code
+ * 
+ * @return     E_OK if routine started successfully
+ */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestRoutineStart_EraseMemory_0x0201(
     CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) InputData_Ptr,
     uint16 InputLength,
@@ -365,12 +341,36 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestRoutineStart_EraseMemory_0x0201(
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
+/**
+ * @brief Start Routine 0x0202 (Check Programming Precondition)
+ * 
+ * Checks programming preconditions: voltage, session, temperature
+ *
+ * @param[out] OutputData_Ptr     Pointer to output data (condition result)
+ * @param[out] OutputLength_Ptr   Pointer to output data length
+ * @param[out] ErrorCode_Ptr      Pointer to error code
+ * 
+ * @return     E_OK if preconditions satisfied
+ */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestRoutineStart_CheckPrecondition_0x0202(
     CONSTP2VAR(uint8, AUTOMATIC, DCM_APPL_DATA) OutputData_Ptr,
     CONSTP2VAR(uint16, AUTOMATIC, DCM_APPL_DATA) OutputLength_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
+/**
+ * @brief Start Routine 0x0203 (Check Application Integrity)
+ * 
+ * Verifies application CRC32 integrity
+ *
+ * @param[in]  InputData_Ptr      Pointer to input data (CRC32 value)
+ * @param[in]  InputLength        Length of input data
+ * @param[out] OutputData_Ptr     Pointer to output data (verify result)
+ * @param[out] OutputLength_Ptr   Pointer to output data length
+ * @param[out] ErrorCode_Ptr      Pointer to error code
+ * 
+ * @return     E_OK if CRC verified successfully
+ */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestRoutineStart_CheckIntegrity_0x0203(
     CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) InputData_Ptr,
     uint16 InputLength,
@@ -379,6 +379,19 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestRoutineStart_CheckIntegrity_0x0203(
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
+/**
+ * @brief Start Routine 0x0303 (CAN Bus Test)
+ * 
+ * Tests CAN bus communication
+ *
+ * @param[in]  InputData_Ptr      Pointer to input data (CAN channel)
+ * @param[in]  InputLength        Length of input data
+ * @param[out] OutputData_Ptr     Pointer to output data (test result)
+ * @param[out] OutputLength_Ptr   Pointer to output data length
+ * @param[out] ErrorCode_Ptr      Pointer to error code
+ * 
+ * @return     E_OK if test passed
+ */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestRoutineStart_CANBusTest_0x0303(
     CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) InputData_Ptr,
     uint16 InputLength,
@@ -387,29 +400,94 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestRoutineStart_CANBusTest_0x0303(
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
-/* ==================== 0x11: ECUReset ==================== */
+/**
+ * @brief Security Access Service (0x27)
+ * 
+ * UDS Service 0x27 implementation for security access levels.
+ * Supports: requestSeed (odd subfunctions), sendKey (even subfunctions)
+ * Levels: Level 1, Level 2, Level 3, Level 4
+ *
+ * @param[in]  Dcm_Ptr              Pointer to the DCM service request
+ * @param[out] RespData_Ptr         Pointer to response data buffer
+ * @param[in]  RespData_Len_Ptr     Pointer to response data length
+ * @param[out] ErrorCode_Ptr        Pointer to negative response code
+ * 
+ * @return     E_OK on success, E_NOT_OK on failure
+ */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_SecurityAccess_0x27(
+    CONSTP2CONST(Dcm_MsgType, AUTOMATIC, DCM_APPL_DATA) Dcm_Ptr,
+    CONSTP2VAR(Dcm_MsgType, AUTOMATIC, DCM_APPL_DATA) RespData_Ptr,
+    CONSTP2VAR(uint16, AUTOMATIC, DCM_APPL_DATA) RespData_Len_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
 
-FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ECUReset_0x11(
-    CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) RequestData,
-    uint16 RequestLength,
-    CONSTP2VAR(uint8, AUTOMATIC, DCM_APPL_DATA) ResponseData,
-    CONSTP2VAR(uint16, AUTOMATIC, DCM_APPL_DATA) ResponseLength);
+/**
+ * @brief Request Seed - Security Level 1
+ * 
+ * Generates and returns a random seed for Level 1 security access
+ *
+ * @param[out] SeedData_Ptr       Pointer to seed data buffer
+ * @param[out] SeedLength_Ptr     Pointer to seed length
+ * @param[out] ErrorCode_Ptr      Pointer to error code
+ * 
+ * @return     E_OK if seed generated successfully
+ */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestSeed_Level1(
+    CONSTP2VAR(uint8, AUTOMATIC, DCM_APPL_DATA) SeedData_Ptr,
+    CONSTP2VAR(uint16, AUTOMATIC, DCM_APPL_DATA) SeedLength_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
 
-/* ==================== 0x28: CommunicationControl ==================== */
+/**
+ * @brief Send Key - Security Level 1
+ * 
+ * Validates security key for Level 1 access
+ *
+ * @param[in]  KeyData_Ptr         Pointer to key data buffer
+ * @param[in]  KeyLength           Length of key data
+ * @param[out] ErrorCode_Ptr       Pointer to error code
+ * 
+ * @return     E_OK if key validated successfully
+ */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level1(
+    CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) KeyData_Ptr,
+    uint16 KeyLength,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
 
-FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_CommunicationControl_0x28(
-    CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) RequestData,
-    uint16 RequestLength,
-    CONSTP2VAR(uint8, AUTOMATIC, DCM_APPL_DATA) ResponseData,
-    CONSTP2VAR(uint16, AUTOMATIC, DCM_APPL_DATA) ResponseLength);
+/**
+ * @brief Request Seed - Security Level 2
+ * 
+ * Generates and returns a random seed for Level 2 security access
+ *
+ * @param[out] SeedData_Ptr       Pointer to seed data buffer
+ * @param[out] SeedLength_Ptr     Pointer to seed length
+ * @param[out] ErrorCode_Ptr      Pointer to error code
+ * 
+ * @return     E_OK if seed generated successfully
+ */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestSeed_Level2(
+    CONSTP2VAR(uint8, AUTOMATIC, DCM_APPL_DATA) SeedData_Ptr,
+    CONSTP2VAR(uint16, AUTOMATIC, DCM_APPL_DATA) SeedLength_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
 
-/* ==================== 0x85: ControlDTCSetting ==================== */
-
-FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ControlDTCSetting_0x85(
-    CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) RequestData,
-    uint16 RequestLength,
-    CONSTP2VAR(uint8, AUTOMATIC, DCM_APPL_DATA) ResponseData,
-    CONSTP2VAR(uint16, AUTOMATIC, DCM_APPL_DATA) ResponseLength);
+/**
+ * @brief Send Key - Security Level 2
+ * 
+ * Validates security key for Level 2 access (Programming)
+ *
+ * @param[in]  KeyData_Ptr         Pointer to key data buffer
+ * @param[in]  KeyLength           Length of key data
+ * @param[out] ErrorCode_Ptr       Pointer to error code
+ * 
+ * @return     E_OK if key validated successfully
+ */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level2(
+    CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) KeyData_Ptr,
+    uint16 KeyLength,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
 
 #ifdef __cplusplus
 }

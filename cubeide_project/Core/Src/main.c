@@ -181,9 +181,8 @@ int main(void)
   CanIf_Init();
   Com_Init();
   PduR_Init();       /* PduR + CANtp 初始化 (注册 UDS 接收回调) */
+  Dcm_Init();
 
-  /* ─── RTE + ASW 层初始化 ─── */
-  Rte_Init();        /* RTE 调度器初始化 */
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -195,7 +194,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  if (s_task10msFlag) {
+	  if (s_task1msFlag) {
+		  Dcm_MainFunction();
+		  s_task1msFlag = 0;
+	  }
+	  if (s_task10msFlag) {
 		  /* ── MCAL 轮询 ── */
 		  Can_MainFunction_Write();           /* 发送缓冲区 → 硬件邮箱 */
 		  Fls_MainFunction();                 /* Flash 操作完成检查 */

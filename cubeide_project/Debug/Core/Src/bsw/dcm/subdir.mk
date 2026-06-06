@@ -5,14 +5,26 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
+../Core/Src/bsw/dcm/Dcm.c \
+../Core/Src/bsw/dcm/Dcm_Uds_CommunicationControl.c \
+../Core/Src/bsw/dcm/Dcm_Uds_ControlDTCSetting.c \
+../Core/Src/bsw/dcm/Dcm_Uds_ECUReset.c \
 ../Core/Src/bsw/dcm/Dcm_Uds_RoutineControl.c \
 ../Core/Src/bsw/dcm/Dcm_Uds_Services.c 
 
 OBJS += \
+./Core/Src/bsw/dcm/Dcm.o \
+./Core/Src/bsw/dcm/Dcm_Uds_CommunicationControl.o \
+./Core/Src/bsw/dcm/Dcm_Uds_ControlDTCSetting.o \
+./Core/Src/bsw/dcm/Dcm_Uds_ECUReset.o \
 ./Core/Src/bsw/dcm/Dcm_Uds_RoutineControl.o \
 ./Core/Src/bsw/dcm/Dcm_Uds_Services.o 
 
 C_DEPS += \
+./Core/Src/bsw/dcm/Dcm.d \
+./Core/Src/bsw/dcm/Dcm_Uds_CommunicationControl.d \
+./Core/Src/bsw/dcm/Dcm_Uds_ControlDTCSetting.d \
+./Core/Src/bsw/dcm/Dcm_Uds_ECUReset.d \
 ./Core/Src/bsw/dcm/Dcm_Uds_RoutineControl.d \
 ./Core/Src/bsw/dcm/Dcm_Uds_Services.d 
 
@@ -24,7 +36,7 @@ Core/Src/bsw/dcm/%.o Core/Src/bsw/dcm/%.su Core/Src/bsw/dcm/%.cyclo: ../Core/Src
 clean: clean-Core-2f-Src-2f-bsw-2f-dcm
 
 clean-Core-2f-Src-2f-bsw-2f-dcm:
-	-$(RM) ./Core/Src/bsw/dcm/Dcm_Uds_RoutineControl.cyclo ./Core/Src/bsw/dcm/Dcm_Uds_RoutineControl.d ./Core/Src/bsw/dcm/Dcm_Uds_RoutineControl.o ./Core/Src/bsw/dcm/Dcm_Uds_RoutineControl.su ./Core/Src/bsw/dcm/Dcm_Uds_Services.cyclo ./Core/Src/bsw/dcm/Dcm_Uds_Services.d ./Core/Src/bsw/dcm/Dcm_Uds_Services.o ./Core/Src/bsw/dcm/Dcm_Uds_Services.su
+	-$(RM) ./Core/Src/bsw/dcm/Dcm.cyclo ./Core/Src/bsw/dcm/Dcm.d ./Core/Src/bsw/dcm/Dcm.o ./Core/Src/bsw/dcm/Dcm.su ./Core/Src/bsw/dcm/Dcm_Uds_CommunicationControl.cyclo ./Core/Src/bsw/dcm/Dcm_Uds_CommunicationControl.d ./Core/Src/bsw/dcm/Dcm_Uds_CommunicationControl.o ./Core/Src/bsw/dcm/Dcm_Uds_CommunicationControl.su ./Core/Src/bsw/dcm/Dcm_Uds_ControlDTCSetting.cyclo ./Core/Src/bsw/dcm/Dcm_Uds_ControlDTCSetting.d ./Core/Src/bsw/dcm/Dcm_Uds_ControlDTCSetting.o ./Core/Src/bsw/dcm/Dcm_Uds_ControlDTCSetting.su ./Core/Src/bsw/dcm/Dcm_Uds_ECUReset.cyclo ./Core/Src/bsw/dcm/Dcm_Uds_ECUReset.d ./Core/Src/bsw/dcm/Dcm_Uds_ECUReset.o ./Core/Src/bsw/dcm/Dcm_Uds_ECUReset.su ./Core/Src/bsw/dcm/Dcm_Uds_RoutineControl.cyclo ./Core/Src/bsw/dcm/Dcm_Uds_RoutineControl.d ./Core/Src/bsw/dcm/Dcm_Uds_RoutineControl.o ./Core/Src/bsw/dcm/Dcm_Uds_RoutineControl.su ./Core/Src/bsw/dcm/Dcm_Uds_Services.cyclo ./Core/Src/bsw/dcm/Dcm_Uds_Services.d ./Core/Src/bsw/dcm/Dcm_Uds_Services.o ./Core/Src/bsw/dcm/Dcm_Uds_Services.su
 
 .PHONY: clean-Core-2f-Src-2f-bsw-2f-dcm
 

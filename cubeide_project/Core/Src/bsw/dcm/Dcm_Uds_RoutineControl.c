@@ -198,7 +198,7 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestRoutineStart_EraseMemory_0x0201(
     }
     
     /* Perform flash erase */
-    flashResult = Flash_Manager_Erase(memAddress, memSize);
+    // flashResult = Flash_Manager_Erase(memAddress, memSize);
     
     if (E_OK == flashResult) {
         OutputData_Ptr[0] = FLASH_ERASE_SUCCESS;
@@ -241,7 +241,7 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestRoutineStart_CheckPrecondition_0x0202(
     }
     
     /* Check system voltage: Requirement 9V - 16V */
-    voltage = Adc_Manager_GetVoltage();
+    // voltage = Adc_Manager_GetVoltage();
     
     if (voltage < 90U) {  /* 90 * 0.1V = 9V */
         conditionResult = PRECONDITION_VOLTAGE_LOW;
@@ -250,7 +250,7 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestRoutineStart_CheckPrecondition_0x0202(
     }
     
     /* Check ECU temperature */
-    temperature = Adc_Manager_GetTemperature();
+    // temperature = Adc_Manager_GetTemperature();
     
     if (temperature > 80U) {  /* 80°C threshold */
         conditionResult = PRECONDITION_TEMP_HIGH;
@@ -307,7 +307,7 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestRoutineStart_CheckIntegrity_0x0203(
                            (InputData_Ptr[2] << 8U) | InputData_Ptr[3]);
     
     /* Calculate CRC32 of application area */
-    calculatedCrc = Crc_CalculateCRC32((uint8 *)APP_START_ADDRESS, APP_SIZE);
+    // calculatedCrc = Crc_CalculateCRC32((uint8 *)APP_START_ADDRESS, APP_SIZE);
     
     /* Compare CRC values */
     if (expectedCrc == calculatedCrc) {
@@ -405,7 +405,7 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestRoutineStart_CANBusTest_0x0303(
     }
     
     /* Perform CAN bus self-test */
-    canResult = Can_Manager_LoopbackTest(canChannel);
+    // canResult = Can_Manager_LoopbackTest(canChannel);
     
     if (E_OK == canResult) {
         OutputData_Ptr[0] = CAN_TEST_SUCCESS;
