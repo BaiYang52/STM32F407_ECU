@@ -117,7 +117,9 @@ typedef uint8 Dcm_NegativeResponseCodeType;
 #define DCM_E_DATA_TRANSFER_ABORTED                 0x72U
 #define DCM_E_GENERAL_PROGRAMMING_FAILURE           0x72U
 #define DCM_E_TRANSFER_DATA_CRCERROR                0x73U
-#define DCM_E_REQUEST_TRANSFER_EXIT_NEGATIVE_RESPONSE 0x71U
+#define DCM_E_REQUEST_TRANSFER_EXIT_NEGATIVE_RESPONSE    0x71U
+#define DCM_E_SUBFUNCTION_NOT_SUPPORT_IN_CURRENT_SESSION 0x7EU
+#define DCM_E_SERVICE_NOT_SUPPORT_IN_CURRENT_SESSION     0x7FU
 #define DCM_E_REQUEST_OUT_OF_RANGE                    0x31U
 
 /*******************************************************************************
@@ -182,7 +184,7 @@ typedef struct {
  * 设置此变量后由 Dcm.c 的 dispatcher 读取并构建否定响应。
  */
 extern uint8 Dcm_Global_NegativeResponseCode;
-
+extern uint8 Dcm_CurrentSession;
 /*******************************************************************************
  * DCM CORE FUNCTION DECLARATIONS
  *******************************************************************************/
@@ -209,20 +211,20 @@ FUNC(uint8, DCM_CODE) Dcm_GetCurrentSession(void);
 
 /**
  * @brief 获取安全级别
- * @return 当前安全级别 (0/1/2)
+ * @return 当前安全级别 (0/1)
  */
 FUNC(uint8, DCM_CODE) Dcm_GetSecurityLevel(void);
 
 /**
  * @brief 检查安全级别是否解锁
- * @param[in] SecurityLevel  安全级别 (1/2)
+ * @param[in] SecurityLevel  安全级别 (1)
  * @return TRUE 已解锁, FALSE 未解锁
  */
 FUNC(boolean, DCM_CODE) Dcm_IsSecurityLevelUnlocked(uint8 SecurityLevel);
 
 /**
  * @brief 设置安全级别状态
- * @param[in] SecurityLevel  安全级别 (1/2)
+ * @param[in] SecurityLevel  安全级别 (1)
  * @param[in] Unlocked       TRUE=解锁, FALSE=锁定
  */
 FUNC(void, DCM_CODE) Dcm_SetSecurityLevel(uint8 SecurityLevel, boolean Unlocked);
@@ -324,18 +326,6 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestSeed_Level1(
 );
 
 FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level1(
-    CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) KeyData_Ptr,
-    uint16 KeyLength,
-    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
-);
-
-FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestSeed_Level2(
-    CONSTP2VAR(uint8, AUTOMATIC, DCM_APPL_DATA) SeedData_Ptr,
-    CONSTP2VAR(uint16, AUTOMATIC, DCM_APPL_DATA) SeedLength_Ptr,
-    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
-);
-
-FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level2(
     CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) KeyData_Ptr,
     uint16 KeyLength,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr

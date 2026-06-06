@@ -64,10 +64,9 @@ typedef enum
 
 static boolean Dcm_Initialized = FALSE;
 static Dcm_StateType Dcm_State = DCM_STATE_UNINIT;
-static uint8 Dcm_CurrentSession = DCM_SESSION_DEFAULT;
+uint8 Dcm_CurrentSession = DCM_SESSION_DEFAULT;
 static uint8 Dcm_LastSession = DCM_SESSION_DEFAULT;
 static boolean Dcm_SecurityLevel1Unlocked = FALSE;
-static boolean Dcm_SecurityLevel2Unlocked = FALSE;
 static boolean Dcm_DTCSettingEnabled = TRUE;
 static Dcm_CommStateType Dcm_CommState = DCM_COMM_RX_TX_ENABLED;
 static uint32 Dcm_S3Timer = 0U;
@@ -135,7 +134,6 @@ FUNC(void, DCM_CODE) Dcm_Init(void)
     Dcm_CurrentSession     = DCM_SESSION_DEFAULT;
     Dcm_LastSession        = DCM_SESSION_DEFAULT;
     Dcm_SecurityLevel1Unlocked = FALSE;
-    Dcm_SecurityLevel2Unlocked = FALSE;
     Dcm_DTCSettingEnabled  = TRUE;
     Dcm_CommState          = DCM_COMM_RX_TX_ENABLED;
     Dcm_S3Timer            = 0U;
@@ -160,6 +158,7 @@ FUNC(void, DCM_CODE) Dcm_MainFunction(void)
         if (Dcm_S3Timer < DCM_S3_SERVER_TIMEOUT) {
             Dcm_S3Timer += 10U;
         } else {
+
             Dcm_SwitchSession(DCM_SESSION_DEFAULT);
         }
     }
@@ -172,31 +171,24 @@ FUNC(uint8, DCM_CODE) Dcm_GetCurrentSession(void)
 
 FUNC(uint8, DCM_CODE) Dcm_GetSecurityLevel(void)
 {
-    if (Dcm_SecurityLevel2Unlocked) {
-        return 2U;
-    } else if (Dcm_SecurityLevel1Unlocked) {
-        return 1U;
-    } else {
-        return 0U;
-    }
+    return Dcm_SecurityLevel1Unlocked ? 1U : 0U;
 }
 
 FUNC(boolean, DCM_CODE) Dcm_IsSecurityLevelUnlocked(uint8 SecurityLevel)
 {
-    switch (SecurityLevel) {
-    case 0U: return TRUE;
-    case 1U: return Dcm_SecurityLevel1Unlocked;
-    case 2U: return Dcm_SecurityLevel2Unlocked;
-    default: return FALSE;
+    if (SecurityLevel == 0U) {
+        return TRUE;
     }
+    if (SecurityLevel == 1U) {
+        return Dcm_SecurityLevel1Unlocked;
+    }
+    return FALSE;
 }
 
 FUNC(void, DCM_CODE) Dcm_SetSecurityLevel(uint8 SecurityLevel, boolean Unlocked)
 {
-    switch (SecurityLevel) {
-    case 1U: Dcm_SecurityLevel1Unlocked = Unlocked; break;
-    case 2U: Dcm_SecurityLevel2Unlocked = Unlocked; break;
-    default: break;
+    if (SecurityLevel == 1U) {
+        Dcm_SecurityLevel1Unlocked = Unlocked;
     }
 }
 
@@ -548,19 +540,44 @@ static void Dcm_BuildNegativeResponse(uint8 RequestSID, uint8 NRC)
 
 static Std_ReturnType Dcm_SwitchSession(uint8 NewSession)
 {
+    uint8 currentSession = Dcm_GetCurrentSession();
+
     switch (NewSession) {
-    case DCM_SESSION_DEFAULT:
-    case DCM_SESSION_PROGRAMMING:
-    case DCM_SESSION_EXTENDED:
-        break;
-    default:
-        return E_NOT_OK;
+        case DCM_SESSION_DEFAULT:
+            break;
+
+        case DCM_SESSION_PROGRAMMING:
+            if (currentSession == DCM_SESSION_PROGRAMMING) {
+                break;
+            }
+            if (currentSession == DCM_SESSION_DEFAULT) {
+                Dcm_Global_NegativeResponseCode = DCM_E_SUBFUNCTION_NOT_SUPPORT_IN_CURRENT_SESSION;
+                return E_NOT_OK;
+            }
+            if (currentSession == DCM_SESSION_EXTENDED) {
+                if (!Dcm_IsSecurityLevelUnlocked(1U)) {
+                    Dcm_Global_NegativeResponseCode = DCM_E_SECURITY_ACCESS_DENIED;
+                    return E_NOT_OK;
+                }
+                break;
+            }
+            Dcm_Global_NegativeResponseCode = DCM_E_CONDITIONS_NOT_CORRECT;
+            return E_NOT_OK;
+
+        case DCM_SESSION_EXTENDED:
+            if (currentSession == DCM_SESSION_PROGRAMMING) {
+                Dcm_Global_NegativeResponseCode = DCM_E_SUBFUNCTION_NOT_SUPPORTED;
+                return E_NOT_OK;
+            }
+            break;
+
+        default:
+            return E_NOT_OK;
     }
 
     Dcm_LastSession = Dcm_CurrentSession;
     Dcm_CurrentSession = NewSession;
     Dcm_SecurityLevel1Unlocked = FALSE;
-    Dcm_SecurityLevel2Unlocked = FALSE;
     Dcm_CommState = DCM_COMM_RX_TX_ENABLED;
     Dcm_ResetS3Timer();
     return E_OK;
@@ -595,7 +612,7 @@ static Std_ReturnType Dcm_Service_DiagnosticSessionControl_0x10(
         return E_NOT_OK;
     }
 
-    subFunction = RequestData[1];
+    subFunction = RequestData[1] & 0x7FU;
 
     switch (subFunction) {
     case 0x01U: newSession = DCM_SESSION_DEFAULT;     break;
@@ -608,7 +625,10 @@ static Std_ReturnType Dcm_Service_DiagnosticSessionControl_0x10(
 
     retVal = Dcm_SwitchSession(newSession);
     if (retVal != E_OK) {
-        Dcm_Global_NegativeResponseCode = DCM_E_CONDITIONS_NOT_CORRECT;
+        /* Dcm_SwitchSession 已设置具体 NRC (0x33/0x7E 等)，此处不要覆盖 */
+        if (Dcm_Global_NegativeResponseCode == 0U) {
+            Dcm_Global_NegativeResponseCode = DCM_E_CONDITIONS_NOT_CORRECT;
+        }
         return E_NOT_OK;
     }
 
@@ -616,8 +636,8 @@ static Std_ReturnType Dcm_Service_DiagnosticSessionControl_0x10(
     ResponseData[1] = subFunction;
     ResponseData[2] = (uint8)(DCM_P2_SERVER_MAX >> 8U);
     ResponseData[3] = (uint8)(DCM_P2_SERVER_MAX & 0xFFU);
-    ResponseData[4] = (uint8)(DCM_P2_STAR_SERVER_MAX >> 8U);
-    ResponseData[5] = (uint8)(DCM_P2_STAR_SERVER_MAX & 0xFFU);
+    ResponseData[4] = (uint8)((DCM_P2_STAR_SERVER_MAX/10) >> 8U);
+    ResponseData[5] = (uint8)((DCM_P2_STAR_SERVER_MAX/10) & 0xFFU);
     *ResponseLength = 6U;
     return E_OK;
 }

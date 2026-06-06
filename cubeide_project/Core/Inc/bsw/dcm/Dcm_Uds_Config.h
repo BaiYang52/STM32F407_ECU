@@ -113,7 +113,7 @@ extern "C" {
  */
 
 /* Security Levels */
-#define DCM_SECURITY_NUM_LEVELS                 4U      /* Levels 1-4 */
+#define DCM_SECURITY_NUM_LEVELS                 1U
 #define DCM_SECURITY_SEED_LENGTH                4U      /* Bytes */
 #define DCM_SECURITY_KEY_LENGTH                 4U      /* Bytes */
 #define DCM_SECURITY_MAX_ATTEMPTS               3U      /* Max key validation attempts */

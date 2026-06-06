@@ -195,7 +195,6 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  if (s_task1msFlag) {
-		  Dcm_MainFunction();
 		  s_task1msFlag = 0;
 	  }
 	  if (s_task10msFlag) {
@@ -210,8 +209,9 @@ int main(void)
 
 		  /* ── ASW 轮询 ── */
 		  Dim_MainFunction();
-
+		  HEATM_Run_Temperature();
 		  APP_MainFunction();
+		  Dcm_MainFunction();
 		  s_task10msFlag = 0;
 	  }
 

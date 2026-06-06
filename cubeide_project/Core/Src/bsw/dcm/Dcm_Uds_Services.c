@@ -11,6 +11,7 @@
  * INCLUDES
  *******************************************************************************/
 #include "Std_Types.h"
+#include "common.h"
 #include <bsw/dcm/Dcm.h>
 #include <bsw/dcm/Dcm_Uds_Config.h>
 
@@ -37,8 +38,8 @@
 
 /* Security Access Variables */
 static uint8 Dcm_SecuritySeed_Level1[SECURITY_SEED_LENGTH];
-static uint8 Dcm_SecuritySeed_Level2[SECURITY_SEED_LENGTH];
 static uint32 Dcm_SecurityAttemptCounter = 0U;
+const uint8 DID_F183_ECU_NAME[16] = {'S','T','M','3','2','V','E','T','6',' ',' ',' ',' ',' ',' ',' '};
 
 /*******************************************************************************
  * LOCAL FUNCTION PROTOTYPES
@@ -145,9 +146,7 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ReadDataByIdentifier_0x22(
         responseIndex += 2U;
         
         /* Copy DID data */
-        for (uint16 i = 0U; i < didLength; i++) {
-            RespData_Ptr->Sdu[responseIndex + i] = tempBuffer[i];
-        }
+        MEMCPY(&RespData_Ptr->Sdu[responseIndex], tempBuffer, didLength);
         responseIndex += didLength;
     }
     
@@ -211,21 +210,11 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF183_EcuName(
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 )
 {
-    Std_ReturnType retVal = E_OK;
-    uint16 didLength = 16U;
-    
     if ((NULL_PTR == EcuNameData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
         return E_NOT_OK;
     }
-    
-    /* Read ECU Name from NVRAM */
-    retVal = Dcm_GetDidFromNvram(DID_ECU_NAME, EcuNameData_Ptr->EcuName, &didLength);
-    
-    if (E_OK != retVal) {
-        *ErrorCode_Ptr = DCM_E_NO_ACCESS_TO_REQUESTED_DID;
-        return E_NOT_OK;
-    }
-    
+    MEMCPY(EcuNameData_Ptr->EcuName, DID_F183_ECU_NAME, 16U);
+
     return E_OK;
 }
 
@@ -388,87 +377,67 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_SecurityAccess_0x27(
 {
     Std_ReturnType retVal = E_OK;
     uint8 subFunction;
-    uint8 securityLevel;
-    
-    /* Validate input parameters */
-    if ((NULL_PTR == Dcm_Ptr) || (NULL_PTR == RespData_Ptr) || 
+
+    if ((NULL_PTR == Dcm_Ptr) || (NULL_PTR == RespData_Ptr) ||
         (NULL_PTR == RespData_Len_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
         return E_NOT_OK;
     }
-    
-    /* Check minimum request length: SID(1) + SubFunction(1) */
+
+    if (Dcm_GetCurrentSession() == DCM_SESSION_DEFAULT) {
+        *ErrorCode_Ptr = DCM_E_SERVICE_NOT_SUPPORT_IN_CURRENT_SESSION;
+        return E_NOT_OK;
+    }
+
     if (Dcm_Ptr->SduLength < 2U) {
         *ErrorCode_Ptr = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
         return E_NOT_OK;
     }
-    
-    /* Response SID = Service ID + 0x40 */
+
     RespData_Ptr->Sdu[0] = 0x27U + 0x40U;  /* 0x67 */
-    
     subFunction = Dcm_Ptr->Sdu[1];
-    
-    /* Determine security level from subfunction */
+
     switch (subFunction) {
-        case 0x01U: /* requestSeed Level 1 */
-        case 0x02U: /* sendKey Level 1 */
-            securityLevel = 1U;
-            break;
-        case 0x03U: /* requestSeed Level 2 */
-        case 0x04U: /* sendKey Level 2 */
-            securityLevel = 2U;
-            break;
-        case 0x05U: /* requestSeed Level 3 */
-        case 0x06U: /* sendKey Level 3 */
-            securityLevel = 3U;
-            break;
-        case 0x07U: /* requestSeed Level 4 */
-        case 0x08U: /* sendKey Level 4 */
-            securityLevel = 4U;
-            break;
-        default:
-            *ErrorCode_Ptr = DCM_E_SUBFUNCTION_NOT_SUPPORTED;
-            return E_NOT_OK;
+    case 0x01U: /* requestSeed */
+    case 0x02U: /* sendKey */
+        break;
+    default:
+        *ErrorCode_Ptr = DCM_E_SUBFUNCTION_NOT_SUPPORTED;
+        return E_NOT_OK;
     }
-    
-    /* Process requestSeed (odd subfunctions) */
+
     if ((subFunction & 0x01U) == 0x01U) {
         retVal = Dcm_RequestSeed_Level1(
             &RespData_Ptr->Sdu[2],
             (uint16 *)RespData_Len_Ptr,
             ErrorCode_Ptr
         );
-        
+
         if (E_OK != retVal) {
             return E_NOT_OK;
         }
-        
-        /* Response: SID + SubFunction + Seed */
+
         RespData_Ptr->Sdu[1] = subFunction;
-        *RespData_Len_Ptr += 2U;  /* Include SID and SubFunction */
-        
-    } else {  /* Process sendKey (even subfunctions) */
-        
-        /* Check minimum request length for sendKey: SID(1) + SubFunction(1) + Key(4) */
+        *RespData_Len_Ptr += 2U;
+    } else {
         if (Dcm_Ptr->SduLength < 6U) {
             *ErrorCode_Ptr = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
             return E_NOT_OK;
         }
-        
+
         retVal = Dcm_SendKey_Level1(
             &Dcm_Ptr->Sdu[2],
             Dcm_Ptr->SduLength - 2U,
             ErrorCode_Ptr
         );
-        
+
         if (E_OK != retVal) {
             return E_NOT_OK;
         }
-        
-        /* Response: SID + SubFunction */
+
         RespData_Ptr->Sdu[1] = subFunction;
         *RespData_Len_Ptr = 2U;
     }
-    
+
     return E_OK;
 }
 
@@ -543,77 +512,6 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level1(
     return E_OK;
 }
 
-FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestSeed_Level2(
-    CONSTP2VAR(uint8, AUTOMATIC, DCM_APPL_DATA) SeedData_Ptr,
-    CONSTP2VAR(uint16, AUTOMATIC, DCM_APPL_DATA) SeedLength_Ptr,
-    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
-)
-{
-    if ((NULL_PTR == SeedData_Ptr) || (NULL_PTR == SeedLength_Ptr) || 
-        (NULL_PTR == ErrorCode_Ptr)) {
-        return E_NOT_OK;
-    }
-    
-    /* Generate random seed for Level 2 */
-    Dcm_GenerateSecuritySeed(Dcm_SecuritySeed_Level2, SECURITY_SEED_LENGTH);
-    
-    /* Copy seed to response */
-    for (uint8 i = 0U; i < SECURITY_SEED_LENGTH; i++) {
-        SeedData_Ptr[i] = Dcm_SecuritySeed_Level2[i];
-    }
-    
-    *SeedLength_Ptr = SECURITY_SEED_LENGTH;
-    
-    return E_OK;
-}
-
-FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level2(
-    CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) KeyData_Ptr,
-    uint16 KeyLength,
-    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
-)
-{
-    uint32 calculatedKey;
-    uint32 receivedKey;
-    
-    if ((NULL_PTR == KeyData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
-        return E_NOT_OK;
-    }
-    
-    /* Check key length */
-    if (KeyLength != SECURITY_KEY_LENGTH) {
-        *ErrorCode_Ptr = DCM_E_INVALID_KEY;
-        return E_NOT_OK;
-    }
-    
-    /* Calculate expected key from seed */
-    calculatedKey = Dcm_CalculateSecurityKey(Dcm_SecuritySeed_Level2, 
-                                              SECURITY_SEED_LENGTH);
-    
-    /* Extract received key (big-endian) */
-    receivedKey = (uint32)((KeyData_Ptr[0] << 24U) | (KeyData_Ptr[1] << 16U) | 
-                           (KeyData_Ptr[2] << 8U) | KeyData_Ptr[3]);
-    
-    /* Validate key */
-    if (calculatedKey != receivedKey) {
-        Dcm_SecurityAttemptCounter++;
-        
-        if (Dcm_SecurityAttemptCounter >= 3U) {
-            *ErrorCode_Ptr = DCM_E_EXCEEDED_NUMBER_OF_ATTEMPTS;
-            return E_NOT_OK;
-        }
-        
-        *ErrorCode_Ptr = DCM_E_INVALID_KEY;
-        return E_NOT_OK;
-    }
-    
-    /* Unlock security level 2 */
-    Dcm_SetSecurityLevel(2U, TRUE);
-    Dcm_SecurityAttemptCounter = 0U;
-    
-    return E_OK;
-}
-
 /**
  * ============================================================================
  * LOCAL FUNCTIONS
@@ -646,10 +544,17 @@ static FUNC(Std_ReturnType, DCM_CODE) Dcm_GetDidFromNvram(
             break;
             
         case DID_ECU_NAME:
-            /* ECU Name: "STM32F407VET6    " (16 bytes) */
-            // Nvram_Manager_Read(NVRAM_DID_F183_ECU_NAME_ADDR, DidData_Ptr, 16U);
-            *DidLength_Ptr = 16U;
+        {
+            Dcm_Did_F183_EcuNameType ecuName;
+            Dcm_NegativeResponseCodeType nrc = 0U;
+
+            retVal = Dcm_RequestReadDidF183_EcuName(&ecuName, &nrc);
+            if (retVal == E_OK) {
+                MEMCPY(DidData_Ptr, ecuName.EcuName, 16U);
+                *DidLength_Ptr = 16U;
+            }
             break;
+        }
             
         case DID_SYSTEM_SUPPLIER_SW_VERSION:
             /* SW Version: "SW-V1.1.0   " (8 bytes) */
@@ -673,10 +578,11 @@ static FUNC(Std_ReturnType, DCM_CODE) Dcm_GetDidFromNvram(
             
         case DID_ACTIVE_DIAGNOSTIC_SESSION:
             /* Current diagnostic session */
-            DidData_Ptr[0] = 0x01U;  /* Default session */
+            DidData_Ptr[0] = Dcm_GetCurrentSession();  /* Current diagnostic session */
+            printf("Session: %d \n",Dcm_GetCurrentSession());
             *DidLength_Ptr = 1U;
             break;
-            
+
         default:
             retVal = E_NOT_OK;
             break;
