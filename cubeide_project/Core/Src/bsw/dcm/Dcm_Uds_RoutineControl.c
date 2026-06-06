@@ -12,15 +12,8 @@
  * INCLUDES
  *******************************************************************************/
 #include "Std_Types.h"
-//#include "Dcm.h"
-#include <dcm/Dcm.h>
-//#include "Flash_Manager.h"
-//#include "Can_Manager.h"
-//#include "Led_Manager.h"
-//#include "Motor_Manager.h"
-//#include "Adc_Manager.h"
-//#include "Mem.h"
-//#include "Crc.h"
+#include <bsw/dcm/Dcm.h>
+#include <bsw/dcm/Dcm_Uds_Config.h>
 
 /*******************************************************************************
  * DEFINES

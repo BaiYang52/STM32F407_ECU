@@ -11,11 +11,8 @@
  * INCLUDES
  *******************************************************************************/
 #include "Std_Types.h"
-#include <dcm/Dcm.h>
-//#include "Nvm.h"
-//#include "Nvram_Manager.h"
-//#include "Crc.h"
-//#include "Rte.h"
+#include <bsw/dcm/Dcm.h>
+#include <bsw/dcm/Dcm_Uds_Config.h>
 
 /*******************************************************************************
  * DEFINES
@@ -31,8 +28,8 @@
 #define NVRAM_DID_F501_FLASH_COUNTER_ADDR   0x0090U
 
 /* Security Access Seed Length */
-#define SECURITY_SEED_LENGTH                4U
-#define SECURITY_KEY_LENGTH                 4U
+#define SECURITY_SEED_LENGTH                DCM_SECURITY_SEED_LENGTH
+#define SECURITY_KEY_LENGTH                 DCM_SECURITY_KEY_LENGTH
 
 /*******************************************************************************
  * LOCAL VARIABLES
@@ -42,13 +39,6 @@
 static uint8 Dcm_SecuritySeed_Level1[SECURITY_SEED_LENGTH];
 static uint8 Dcm_SecuritySeed_Level2[SECURITY_SEED_LENGTH];
 static uint32 Dcm_SecurityAttemptCounter = 0U;
-static boolean Dcm_SecurityLevel1Unlocked = FALSE;
-static boolean Dcm_SecurityLevel2Unlocked = FALSE;
-
-/* DID Cache */
-static uint8 Dcm_Did_F190_Cache[17];
-static uint8 Dcm_Did_F183_Cache[16];
-static uint8 Dcm_Did_F195_Cache[8];
 
 /*******************************************************************************
  * LOCAL FUNCTION PROTOTYPES
@@ -71,13 +61,6 @@ static FUNC(Std_ReturnType, DCM_CODE) Dcm_WriteDidToNvram(
     CONSTP2CONST(uint8, AUTOMATIC, DCM_APPL_DATA) DidData_Ptr,
     uint16 DidLength
 );
-
-/**
- * @brief Validate security level
- */
-//static FUNC(boolean, DCM_CODE) Dcm_IsSecurityLevelUnlocked(
-//    uint8 SecurityLevel
-//);
 
 /**
  * @brief Generate random seed
@@ -554,7 +537,7 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level1(
     }
     
     /* Unlock security level 1 */
-    Dcm_SecurityLevel1Unlocked = TRUE;
+    Dcm_SetSecurityLevel(1U, TRUE);
     Dcm_SecurityAttemptCounter = 0U;
     
     return E_OK;
@@ -625,7 +608,7 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level2(
     }
     
     /* Unlock security level 2 */
-    Dcm_SecurityLevel2Unlocked = TRUE;
+    Dcm_SetSecurityLevel(2U, TRUE);
     Dcm_SecurityAttemptCounter = 0U;
     
     return E_OK;
@@ -746,20 +729,6 @@ static FUNC(Std_ReturnType, DCM_CODE) Dcm_WriteDidToNvram(
     
     return retVal;
 }
-
-//static FUNC(boolean, DCM_CODE) Dcm_IsSecurityLevelUnlocked(
-//    uint8 SecurityLevel
-//)
-//{
-//    switch (SecurityLevel) {
-//        case 1U:
-//            return Dcm_SecurityLevel1Unlocked;
-//        case 2U:
-//            return Dcm_SecurityLevel2Unlocked;
-//        default:
-//            return FALSE;
-//    }
-//}
 
 static FUNC(void, DCM_CODE) Dcm_GenerateSecuritySeed(
     CONSTP2VAR(uint8, AUTOMATIC, DCM_APPL_DATA) SeedBuffer_Ptr,

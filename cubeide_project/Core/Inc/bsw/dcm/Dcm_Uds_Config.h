@@ -25,9 +25,13 @@ extern "C" {
  * │   │   ├── mcal/
  * │   │   ├── services/
  * │   │   │   └── dcm/
- * │   │   │       ├── Dcm_Uds_Services.h       (Header)
+ * │   │   │       ├── Dcm.h                    (Core API + service declarations)
+ * │   │   │       ├── Dcm.c                    (Core + 0x10, 0x3E)
  * │   │   │       ├── Dcm_Uds_Services.c       (0x22, 0x2E, 0x27)
  * │   │   │       ├── Dcm_Uds_RoutineControl.c (0x31)
+ * │   │   │       ├── Dcm_Uds_ECUReset.c       (0x11)
+ * │   │   │       ├── Dcm_Uds_CommunicationControl.c (0x28)
+ * │   │   │       ├── Dcm_Uds_ControlDTCSetting.c    (0x85)
  * │   │   │       └── Dcm_Uds_Config.h         (This file)
  * │   │   └── communication/
  * │   │       └── can/
@@ -56,14 +60,17 @@ extern "C" {
  */
 
 /* Enable/Disable UDS Services */
-#define DCM_SERVICE_0x22_ENABLED                1U      /* ReadDataByIdentifier */
-#define DCM_SERVICE_0x2E_ENABLED                1U      /* WriteDataByIdentifier */
-#define DCM_SERVICE_0x27_ENABLED                1U      /* SecurityAccess */
-#define DCM_SERVICE_0x31_ENABLED                1U      /* RoutineControl */
-#define DCM_SERVICE_0x10_ENABLED                1U      /* DiagnosticSessionControl */
-#define DCM_SERVICE_0x11_ENABLED                1U      /* EcuReset */
-#define DCM_SERVICE_0x14_ENABLED                1U      /* ClearDiagnosticInformation */
-#define DCM_SERVICE_0x19_ENABLED                1U      /* ReadDTCInformation */
+#define DCM_SERVICE_0x10_ENABLED                1U      /* DiagnosticSessionControl (Dcm.c) */
+#define DCM_SERVICE_0x11_ENABLED                1U      /* EcuReset (Dcm_Uds_ECUReset.c) */
+#define DCM_SERVICE_0x14_ENABLED                0U      /* ClearDiagnosticInformation (未实现) */
+#define DCM_SERVICE_0x19_ENABLED                0U      /* ReadDTCInformation (未实现) */
+#define DCM_SERVICE_0x22_ENABLED                1U      /* ReadDataByIdentifier (Dcm_Uds_Services.c) */
+#define DCM_SERVICE_0x27_ENABLED                1U      /* SecurityAccess (Dcm_Uds_Services.c) */
+#define DCM_SERVICE_0x28_ENABLED                1U      /* CommunicationControl (Dcm_Uds_CommunicationControl.c) */
+#define DCM_SERVICE_0x2E_ENABLED                1U      /* WriteDataByIdentifier (Dcm_Uds_Services.c) */
+#define DCM_SERVICE_0x31_ENABLED                1U      /* RoutineControl (Dcm_Uds_RoutineControl.c) */
+#define DCM_SERVICE_0x3E_ENABLED                1U      /* TesterPresent (Dcm.c) */
+#define DCM_SERVICE_0x85_ENABLED                1U      /* ControlDTCSetting (Dcm_Uds_ControlDTCSetting.c) */
 
 /* ============================================================================
  * 2. DID CONFIGURATION
@@ -253,7 +260,7 @@ extern const Dcm_RoutineConfigType Dcm_RoutineConfigTable[DCM_NUM_SUPPORTED_ROUT
  * ============================================================================
  * 
  * In your project's include paths, add:
- * - Dcm_Uds_Services.h
+ * - Dcm.h
  * - Dcm_Uds_Config.h
  * - Std_Types.h (AUTOSAR standard types)
  *
@@ -265,8 +272,12 @@ extern const Dcm_RoutineConfigType Dcm_RoutineConfigTable[DCM_NUM_SUPPORTED_ROUT
  * ============================================================================
  * 
  * Add to your build system (Makefile, CMake, or IDE project):
+ * - Dcm.c
  * - Dcm_Uds_Services.c
  * - Dcm_Uds_RoutineControl.c
+ * - Dcm_Uds_ECUReset.c
+ * - Dcm_Uds_CommunicationControl.c
+ * - Dcm_Uds_ControlDTCSetting.c
  * - Any dependency modules (Flash_Manager, Can_Manager, Adc_Manager, etc.)
  *
  */

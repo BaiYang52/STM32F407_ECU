@@ -7,9 +7,8 @@
  *   - 接收来自 PduR 的 UDS 请求
  *   - 服务分发 (dispatch) 到各服务处理函数
  *   - 诊断会话管理 (Service 0x10)
- *   - 安全访问级别管理
  *   - TesterPresent 处理 (Service 0x3E)
- *   - 通信控制管理 (Service 0x28)
+ *   - 安全访问级别 / 通信控制 / DTC 状态管理
  *   - 定时参数管理 (P2Server, S3Server)
  *   - 否定响应 (Negative Response) 构建
  *
@@ -28,7 +27,6 @@
 #include "pdur.h"
 #include <bsw/dcm/Dcm.h>
 #include <bsw/dcm/Dcm_Uds_Config.h>
-#include <bsw/dcm/dcm_service.h>
 
 /*******************************************************************************
  * DEFINES
@@ -38,45 +36,8 @@
 #define DCM_MINOR_VERSION                       0U
 #define DCM_PATCH_VERSION                       0U
 
-/* UDS Response SID offset */
-#define DCM_RESPONSE_SID_OFFSET                 0x40U
+/* UDS Response SID */
 #define DCM_NEGATIVE_RESPONSE_SID               0x7FU
-
-/* Negative Response Code (NRC) 标准 */
-#define DCM_NRC_SERVICE_NOT_SUPPORTED           0x11U
-#define DCM_NRC_SUBFUNCTION_NOT_SUPPORTED       0x12U
-#define DCM_NRC_INCORRECT_MESSAGE_LENGTH        0x13U
-#define DCM_NRC_CONDITIONS_NOT_CORRECT          0x22U
-#define DCM_NRC_REQUEST_SEQUENCE_ERROR          0x24U
-#define DCM_NRC_REQUEST_OUT_OF_RANGE            0x31U
-#define DCM_NRC_SECURITY_ACCESS_DENIED          0x33U
-#define DCM_NRC_INVALID_KEY                     0x35U
-#define DCM_NRC_EXCEEDED_NUMBER_OF_ATTEMPTS     0x36U
-#define DCM_NRC_REQUIRED_TIME_DELAY_NOT_EXPIRED 0x37U
-#define DCM_NRC_UPLOAD_DOWNLOAD_NOT_ACCEPTED    0x70U
-#define DCM_NRC_TRANSFER_DATA_SUSPENDED         0x71U
-#define DCM_NRC_GENERAL_PROGRAMMING_FAILURE     0x72U
-#define DCM_NRC_WRONG_BLOCK_SEQUENCE_COUNTER    0x73U
-#define DCM_NRC_RESPONSE_PENDING                0x78U
-#define DCM_NRC_SUBFUNCTION_NOT_SUPPORTED_IN_ACTIVE_SESSION 0x7EU
-#define DCM_NRC_SERVICE_NOT_SUPPORTED_IN_ACTIVE_SESSION     0x7FU
-
-/* 定时参数 (来自需求文档) */
-#define DCM_P2_SERVER_MAX_MS                    50U
-#define DCM_P2_STAR_SERVER_MAX_MS               5000U
-#define DCM_S3_SERVER_TIMEOUT_MS                5000U
-
-/* 服务使能开关 */
-#define DCM_SERVICE_0x10_ENABLED                1U
-#define DCM_SERVICE_0x11_ENABLED                1U
-#define DCM_SERVICE_0x28_ENABLED                1U
-#define DCM_SERVICE_0x3E_ENABLED                1U
-#define DCM_SERVICE_0x85_ENABLED                1U
-#define DCM_SERVICE_0x22_ENABLED                1U
-#define DCM_SERVICE_0x2E_ENABLED                1U
-#define DCM_SERVICE_0x27_ENABLED                1U
-#define DCM_SERVICE_0x31_ENABLED                1U
-#define DCM_SERVICE_0x19_ENABLED                0U
 
 /*******************************************************************************
  * TYPE DEFINITIONS
@@ -89,13 +50,6 @@ typedef enum
     DCM_STATE_PROCESSING,
     DCM_STATE_PENDING
 } Dcm_StateType;
-
-// typedef enum
-// {
-//     DCM_SESSION_DEFAULT     = 0x01U,
-//     DCM_SESSION_PROGRAMMING = 0x02U,
-//     DCM_SESSION_EXTENDED    = 0x03U
-// } Dcm_SessionType;
 
 typedef enum
 {
@@ -117,9 +71,6 @@ static boolean Dcm_SecurityLevel2Unlocked = FALSE;
 static boolean Dcm_DTCSettingEnabled = TRUE;
 static Dcm_CommStateType Dcm_CommState = DCM_COMM_RX_TX_ENABLED;
 static uint32 Dcm_S3Timer = 0U;
-static uint32 Dcm_P2StarTimer = 0U;
-static uint8 Dcm_RequestBuffer[DCM_REQUEST_BUFFER_SIZE];
-static uint16 Dcm_RequestLength = 0U;
 static uint8 Dcm_ResponseBuffer[DCM_RESPONSE_BUFFER_SIZE];
 static uint16 Dcm_ResponseLength = 0U;
 static boolean Dcm_NeedNegativeResponse = FALSE;
@@ -153,17 +104,9 @@ static void Dcm_PduRTxCallback(PduR_PduIdType PduId, Std_ReturnType Result);
 
 static void Dcm_BuildNegativeResponse(uint8 RequestSID, uint8 NRC);
 
-static uint8 Dcm_GetPositiveResponseSID(uint8 RequestSID);
-
-static boolean Dcm_IsServiceSupportedInSession(uint8 SID);
-
-static boolean Dcm_IsSubFunctionSupportedInSession(uint8 SID, uint8 SubFunction);
-
 static void Dcm_ResetS3Timer(void);
 
 static Std_ReturnType Dcm_SwitchSession(uint8 NewSession);
-
-static boolean Dcm_ValidateRequestLength(uint8 SID, uint16 RequestLength);
 
 /* 内嵌服务处理函数前置声明 */
 static Std_ReturnType Dcm_Service_DiagnosticSessionControl_0x10(
@@ -196,7 +139,6 @@ FUNC(void, DCM_CODE) Dcm_Init(void)
     Dcm_DTCSettingEnabled  = TRUE;
     Dcm_CommState          = DCM_COMM_RX_TX_ENABLED;
     Dcm_S3Timer            = 0U;
-    Dcm_P2StarTimer        = 0U;
     Dcm_NeedResponse       = FALSE;
     Dcm_NeedNegativeResponse = FALSE;
     Dcm_SuppressPositiveResponse = FALSE;
@@ -215,7 +157,7 @@ FUNC(void, DCM_CODE) Dcm_MainFunction(void)
     }
 
     if (Dcm_CurrentSession != DCM_SESSION_DEFAULT) {
-        if (Dcm_S3Timer < DCM_S3_SERVER_TIMEOUT_MS) {
+        if (Dcm_S3Timer < DCM_S3_SERVER_TIMEOUT) {
             Dcm_S3Timer += 10U;
         } else {
             Dcm_SwitchSession(DCM_SESSION_DEFAULT);
@@ -357,7 +299,7 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
             Dcm_NeedResponse = TRUE;
         }
 #else
-        Dcm_Global_NegativeResponseCode = DCM_NRC_SERVICE_NOT_SUPPORTED;
+        Dcm_Global_NegativeResponseCode = DCM_E_SERVICE_NOT_SUPPORTED;
         Dcm_NeedNegativeResponse = TRUE;
 #endif
         break;
@@ -375,7 +317,7 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
             Dcm_NeedResponse = TRUE;
         }
 #else
-        Dcm_Global_NegativeResponseCode = DCM_NRC_SERVICE_NOT_SUPPORTED;
+        Dcm_Global_NegativeResponseCode = DCM_E_SERVICE_NOT_SUPPORTED;
         Dcm_NeedNegativeResponse = TRUE;
 #endif
         break;
@@ -405,7 +347,7 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
         }
     }
 #else
-        Dcm_Global_NegativeResponseCode = DCM_NRC_SERVICE_NOT_SUPPORTED;
+        Dcm_Global_NegativeResponseCode = DCM_E_SERVICE_NOT_SUPPORTED;
         Dcm_NeedNegativeResponse = TRUE;
 #endif
         break;
@@ -435,7 +377,7 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
         }
     }
 #else
-        Dcm_Global_NegativeResponseCode = DCM_NRC_SERVICE_NOT_SUPPORTED;
+        Dcm_Global_NegativeResponseCode = DCM_E_SERVICE_NOT_SUPPORTED;
         Dcm_NeedNegativeResponse = TRUE;
 #endif
         break;
@@ -453,7 +395,7 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
             Dcm_NeedResponse = TRUE;
         }
 #else
-        Dcm_Global_NegativeResponseCode = DCM_NRC_SERVICE_NOT_SUPPORTED;
+        Dcm_Global_NegativeResponseCode = DCM_E_SERVICE_NOT_SUPPORTED;
         Dcm_NeedNegativeResponse = TRUE;
 #endif
         break;
@@ -483,7 +425,7 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
         }
     }
 #else
-        Dcm_Global_NegativeResponseCode = DCM_NRC_SERVICE_NOT_SUPPORTED;
+        Dcm_Global_NegativeResponseCode = DCM_E_SERVICE_NOT_SUPPORTED;
         Dcm_NeedNegativeResponse = TRUE;
 #endif
         break;
@@ -513,7 +455,7 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
         }
     }
 #else
-        Dcm_Global_NegativeResponseCode = DCM_NRC_SERVICE_NOT_SUPPORTED;
+        Dcm_Global_NegativeResponseCode = DCM_E_SERVICE_NOT_SUPPORTED;
         Dcm_NeedNegativeResponse = TRUE;
 #endif
         break;
@@ -531,7 +473,7 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
             Dcm_NeedResponse = TRUE;
         }
 #else
-        Dcm_Global_NegativeResponseCode = DCM_NRC_SERVICE_NOT_SUPPORTED;
+        Dcm_Global_NegativeResponseCode = DCM_E_SERVICE_NOT_SUPPORTED;
         Dcm_NeedNegativeResponse = TRUE;
 #endif
         break;
@@ -549,13 +491,13 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
             Dcm_NeedResponse = TRUE;
         }
 #else
-        Dcm_Global_NegativeResponseCode = DCM_NRC_SERVICE_NOT_SUPPORTED;
+        Dcm_Global_NegativeResponseCode = DCM_E_SERVICE_NOT_SUPPORTED;
         Dcm_NeedNegativeResponse = TRUE;
 #endif
         break;
 
     default:
-        Dcm_Global_NegativeResponseCode = DCM_NRC_SERVICE_NOT_SUPPORTED;
+        Dcm_Global_NegativeResponseCode = DCM_E_SERVICE_NOT_SUPPORTED;
         Dcm_NeedNegativeResponse = TRUE;
         break;
     }
@@ -592,6 +534,10 @@ static void Dcm_PduRTxCallback(PduR_PduIdType PduId, Std_ReturnType Result)
 
 static void Dcm_BuildNegativeResponse(uint8 RequestSID, uint8 NRC)
 {
+    if (NRC == 0U) {
+        NRC = DCM_E_SERVICE_NOT_SUPPORTED;
+    }
+
     Dcm_ResponseBuffer[0] = DCM_NEGATIVE_RESPONSE_SID;
     Dcm_ResponseBuffer[1] = RequestSID;
     Dcm_ResponseBuffer[2] = NRC;
@@ -599,15 +545,6 @@ static void Dcm_BuildNegativeResponse(uint8 RequestSID, uint8 NRC)
     Dcm_NeedResponse      = TRUE;
     Dcm_NeedNegativeResponse = FALSE;
 }
-
-static uint8 Dcm_GetPositiveResponseSID(uint8 RequestSID)
-{
-    return (RequestSID + DCM_RESPONSE_SID_OFFSET);
-}
-
-/*******************************************************************************
- * PRIVATE FUNCTIONS - SESSION MANAGEMENT
- *******************************************************************************/
 
 static Std_ReturnType Dcm_SwitchSession(uint8 NewSession)
 {
@@ -654,7 +591,7 @@ static Std_ReturnType Dcm_Service_DiagnosticSessionControl_0x10(
     }
 
     if (RequestLength < 2U) {
-        Dcm_Global_NegativeResponseCode = DCM_NRC_INCORRECT_MESSAGE_LENGTH;
+        Dcm_Global_NegativeResponseCode = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
         return E_NOT_OK;
     }
 
@@ -665,22 +602,22 @@ static Std_ReturnType Dcm_Service_DiagnosticSessionControl_0x10(
     case 0x02U: newSession = DCM_SESSION_PROGRAMMING; break;
     case 0x03U: newSession = DCM_SESSION_EXTENDED;    break;
     default:
-        Dcm_Global_NegativeResponseCode = DCM_NRC_SUBFUNCTION_NOT_SUPPORTED;
+        Dcm_Global_NegativeResponseCode = DCM_E_SUBFUNCTION_NOT_SUPPORTED;
         return E_NOT_OK;
     }
 
     retVal = Dcm_SwitchSession(newSession);
     if (retVal != E_OK) {
-        Dcm_Global_NegativeResponseCode = DCM_NRC_CONDITIONS_NOT_CORRECT;
+        Dcm_Global_NegativeResponseCode = DCM_E_CONDITIONS_NOT_CORRECT;
         return E_NOT_OK;
     }
 
     ResponseData[0] = 0x50U;        /* 0x10 + 0x40 */
     ResponseData[1] = subFunction;
-    ResponseData[2] = (uint8)(DCM_P2_SERVER_MAX_MS >> 8U);
-    ResponseData[3] = (uint8)(DCM_P2_SERVER_MAX_MS & 0xFFU);
-    ResponseData[4] = (uint8)(DCM_P2_STAR_SERVER_MAX_MS >> 8U);
-    ResponseData[5] = (uint8)(DCM_P2_STAR_SERVER_MAX_MS & 0xFFU);
+    ResponseData[2] = (uint8)(DCM_P2_SERVER_MAX >> 8U);
+    ResponseData[3] = (uint8)(DCM_P2_SERVER_MAX & 0xFFU);
+    ResponseData[4] = (uint8)(DCM_P2_STAR_SERVER_MAX >> 8U);
+    ResponseData[5] = (uint8)(DCM_P2_STAR_SERVER_MAX & 0xFFU);
     *ResponseLength = 6U;
     return E_OK;
 }
@@ -703,14 +640,14 @@ static Std_ReturnType Dcm_Service_TesterPresent_0x3E(
     }
 
     if (RequestLength < 2U) {
-        Dcm_Global_NegativeResponseCode = DCM_NRC_INCORRECT_MESSAGE_LENGTH;
+        Dcm_Global_NegativeResponseCode = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
         return E_NOT_OK;
     }
 
     subFunction = RequestData[1];
 
     if (subFunction != 0x00U) {
-        Dcm_Global_NegativeResponseCode = DCM_NRC_SUBFUNCTION_NOT_SUPPORTED;
+        Dcm_Global_NegativeResponseCode = DCM_E_SUBFUNCTION_NOT_SUPPORTED;
         return E_NOT_OK;
     }
 

@@ -17,8 +17,8 @@
  *   - 0x85: ControlDTCSetting
  */
 
-#ifndef DCM_UDS_SERVICES_H
-#define DCM_UDS_SERVICES_H
+#ifndef DCM_H
+#define DCM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,13 +94,6 @@ extern "C" {
 #define DCM_SESSION_DEFAULT                         0x01U
 #define DCM_SESSION_PROGRAMMING                     0x02U
 #define DCM_SESSION_EXTENDED                        0x03U
-
-/* Return Types */
-typedef uint8 Std_ReturnType;
-#define E_OK                    0x00U
-#define E_NOT_OK                0x01U
-#define E_SECURITY_ACCESS_DENIED 0x02U
-#define E_SESSION_NOT_ALLOWED   0x03U
 
 /* Data Types */
 typedef uint8 Dcm_NegativeResponseCodeType;
@@ -415,4 +408,4 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ControlDTCSetting_0x85(
 }
 #endif
 
-#endif /* DCM_UDS_SERVICES_H */
+#endif /* DCM_H */
