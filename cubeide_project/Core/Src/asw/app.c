@@ -100,8 +100,12 @@ APP_KeyStateType APP_Get_Key0DebounceState(void)
 	static uint16 u_KeyPressTime = 0U; /* 初始按压时间: 0*10ms =0ms */
 	static uint8 u_KeyBitState = 0x07U; /* 初始状态: 0b00000111 (未按) */
 	static APP_KeyStateType lastKeyState = e_KEY_NOT_PRESSED;
+	uint8 xorval = 0x01;
 	u_KeyBitState <<= 1;
-	u_KeyBitState = (u_KeyBitState|(uint8)Rte_Read_Key0_State()) & 0x07U; /* 读 KEY0 状态 */
+	xorval = (uint8)Rte_Read_Key0_State();
+	u_KeyBitState = (u_KeyBitState|xorval) & 0x07U; /* 读 KEY1 状态 */
+	//u_KeyBitState = (u_KeyBitState|(uint8)Rte_Read_Key0_State()) & 0x07U; /* 读 KEY1 状态 */
+
 	if (u_KeyBitState == 0x00U) {
 		u_KeyPressTime++;
 		if (u_KeyPressTime >= 1000U) { /* 长按判定: 100*10ms = 1000ms = 1s */

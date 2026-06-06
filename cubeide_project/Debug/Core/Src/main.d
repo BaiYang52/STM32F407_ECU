@@ -40,7 +40,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/timer/timer_driver.h \
  E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/pwm/pwm_driver.h \
  E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/spi/spi_flash.h \
- E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\asw\dim.h \
+ ../Core/Inc/asw/dim.h \
  E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/canif.h \
  E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/can/can_types.h \
  E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/com.h \
@@ -90,7 +90,7 @@ E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/gpio/gpio_driver.h
 E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/timer/timer_driver.h:
 E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/pwm/pwm_driver.h:
 E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/spi/spi_flash.h:
-E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\asw\dim.h:
+../Core/Inc/asw/dim.h:
 E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/canif.h:
 E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/mcal/can/can_types.h:
 E:/Project/Github/STM32F407_ECU/cubeide_project/Core/Inc/bsw/com.h:

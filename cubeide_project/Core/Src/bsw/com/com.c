@@ -52,8 +52,8 @@ static const Com_SignalType s_signalMap[COM_SIG_MAX] = {
     /* ========== ECU_Status (0x1A0, TX, Motorola @1+) ========== */
     {COM_SIG_ROLL_COUNTER,   COM_PDU_ECU_STATUS,     0U, 3U,  4U,  0U, COM_FORMAT_MOTOROLA}, /* DBC:0|4 → Byte0 bits3-0 */
     {COM_SIG_CHECKSUM,       COM_PDU_ECU_STATUS,     1U, 7U,  8U,  0U, COM_FORMAT_MOTOROLA}, /* DBC:8|8 → Byte1 */
-    {COM_SIG_BUTTON1_STATUS, COM_PDU_ECU_STATUS,     2U, 7U,  2U,  0U, COM_FORMAT_MOTOROLA}, /* DBC:16|2 → Byte2 bits7-6 */
-    {COM_SIG_BUTTON2_STATUS, COM_PDU_ECU_STATUS,     2U, 5U,  2U,  0U, COM_FORMAT_MOTOROLA}, /* DBC:18|2 → Byte2 bits5-4 */
+    {COM_SIG_BUTTON1_STATUS, COM_PDU_ECU_STATUS,     2U, 1U,  2U,  0U, COM_FORMAT_MOTOROLA}, /* DBC:16|2 → Byte2 bits1-0 */
+    {COM_SIG_BUTTON2_STATUS, COM_PDU_ECU_STATUS,     2U, 3U,  2U,  0U, COM_FORMAT_MOTOROLA}, /* DBC:18|2 → Byte2 bits3-2 */
     {COM_SIG_SYS_VOLTAGE,    COM_PDU_ECU_STATUS,     3U, 7U,  8U,  0U, COM_FORMAT_MOTOROLA}, /* DBC:24|8 → Byte3 */
     {COM_SIG_ECU_TEMP,       COM_PDU_ECU_STATUS,     4U, 7U,  8U,  1U, COM_FORMAT_MOTOROLA}, /* DBC:32|8 → Byte4 */
     {COM_SIG_LED_PWM_DUTY,   COM_PDU_ECU_STATUS,     5U, 7U,  8U,  0U, COM_FORMAT_MOTOROLA}, /* DBC:40|8 → Byte5 */
@@ -386,41 +386,37 @@ void Com_RxIndication(const CanIf_Pdu *Pdu)
 }
 
 //For test
- FUNC(void, COM_CODE)
- Com_TestFunction(void)
- {
-     uint8 ledlvl=0U;
-     uint8 ignstatus=0U;
-     uint16 vehspeed=0U;
-     uint16 enginespeed=0U;
-     uint8 motorcmd=0U;
-     uint8 ledcmd=0U;
-     Com_ReadSignal(COM_SIG_LED_BRIGHTNESS_LEVEL,&ledlvl);
-     printf("ledlvl%d\n",ledlvl);
-     Com_ReadSignal(COM_SIG_IGN_STATUS,&ignstatus);
-     printf("ignstatus%d\n",ignstatus);
-     Com_ReadSignal(COM_SIG_VEH_SPEED,&vehspeed);
-     printf("vehspeed%d\n",vehspeed);
-     Com_ReadSignal(COM_SIG_ENGINE_SPEED,&enginespeed);
-     printf("enginespeed %d\n",enginespeed);
-     Com_ReadSignal(COM_SIG_MOTOR_SWITCH_CMD,&motorcmd);
-     printf("motorcmd %d\n",motorcmd);
-     Com_ReadSignal(COM_SIG_LED_SWITCH_CMD,&ledcmd);
-     printf("ledcmd %d\n",ledcmd);
-     uint8 b1=1;
-     uint8 b2=2;
-     uint8 vol=33;
-     uint8 tem=100;
-     uint16 ct=500;
-     uint8 errorcode=0x12;
-     Com_WriteSignal(COM_SIG_BUTTON1_STATUS,&b1);
-     Com_WriteSignal(COM_SIG_BUTTON2_STATUS,&b2);
-     Com_WriteSignal(COM_SIG_SYS_VOLTAGE,&vol);
-     Com_WriteSignal(COM_SIG_ECU_TEMP,&tem);
-    Com_WriteSignal(COM_SIG_FLASH_COUNTER,&ct);
-    Com_WriteSignal(COM_SIG_ECU_ERROR_CODE,&errorcode);
-
-
-
-
- }
+// FUNC(void, COM_CODE)
+// Com_TestFunction(void)
+// {
+//     uint8 ledlvl=0U;
+//     uint8 ignstatus=0U;
+//     uint16 vehspeed=0U;
+//     uint16 enginespeed=0U;
+//     uint8 motorcmd=0U;
+//     uint8 ledcmd=0U;
+//     Com_ReadSignal(COM_SIG_LED_BRIGHTNESS_LEVEL,&ledlvl);
+//     printf("ledlvl%d\n",ledlvl);
+//     Com_ReadSignal(COM_SIG_IGN_STATUS,&ignstatus);
+//     printf("ignstatus%d\n",ignstatus);
+//     Com_ReadSignal(COM_SIG_VEH_SPEED,&vehspeed);
+//     printf("vehspeed%d\n",vehspeed);
+//     Com_ReadSignal(COM_SIG_ENGINE_SPEED,&enginespeed);
+//     printf("enginespeed %d\n",enginespeed);
+//     Com_ReadSignal(COM_SIG_MOTOR_SWITCH_CMD,&motorcmd);
+//     printf("motorcmd %d\n",motorcmd);
+//     Com_ReadSignal(COM_SIG_LED_SWITCH_CMD,&ledcmd);
+//     printf("ledcmd %d\n",ledcmd);
+//     uint8 b1=1;
+//     uint8 b2=2;
+//     uint8 vol=33;
+//     uint8 tem=100;
+//     uint16 ct=500;
+//     uint8 errorcode=0x12;
+//     Com_WriteSignal(COM_SIG_BUTTON1_STATUS,&b1);
+//     Com_WriteSignal(COM_SIG_BUTTON2_STATUS,&b2);
+//     Com_WriteSignal(COM_SIG_SYS_VOLTAGE,&vol);
+//     Com_WriteSignal(COM_SIG_ECU_TEMP,&tem);
+//    Com_WriteSignal(COM_SIG_FLASH_COUNTER,&ct);
+//    Com_WriteSignal(COM_SIG_ECU_ERROR_CODE,&errorcode);
+// }

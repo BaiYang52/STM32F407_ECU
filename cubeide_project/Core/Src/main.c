@@ -33,7 +33,7 @@
 #include "timer_driver.h"
 #include "pwm_driver.h"
 #include "spi_flash.h"
-#include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\asw\dim.h"
+#include <asw/dim.h>
 
 /* BSW 接口头文件 */
 #include "canif.h"
@@ -195,15 +195,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//	  if (s_task10msFlag) {
-//		  App_Task_10ms();
-//	  }
-//	  if (s_task100msFlag) {
-//		  App_Task_100ms();
-//	  }
-//	  if (s_task1000msFlag) {
-//		  App_Task_1000ms();
-//	  }
   if (s_task10msFlag) {
 		  /* ── MCAL 轮询 ── */
 		  Can_MainFunction_Write();           /* 发送缓冲区 → 硬件邮箱 */
@@ -217,9 +208,7 @@ int main(void)
 		  /* ── ASW 轮询 ── */
 		  Dim_MainFunction();
 
-		  /* ── RTE + ASW 层 10ms Runnable ── */
-//		  Rte_MainFunction_10ms();            /* DIM(FAN) 10ms: LED+Motor */
-
+		  APP_MainFunction();
 		  s_task10msFlag = 0;
 	  }
 
@@ -227,16 +216,10 @@ int main(void)
 		  /* ── MCAL BusOff 恢复 ── */
 		  Can_MainFunction_BusOff();
 
-		  /* ── RTE + ASW 层 100ms Runnable ── */
-//		  Rte_MainFunction_100ms();           /* DIM(FAN) 100ms: 按键+方向 */
-
 		  s_task100msFlag = 0;
 	  }
 
 	  if (s_task1000msFlag) {
-		  /* ── RTE + ASW 层 1000ms Runnable ── */
-//		  Rte_MainFunction_1000ms();          /* DIM(HEATM) 1000ms: IGN+温度 */
-		  Dim_MainFunction();
 //		  Com_TestFunction();
 		  s_task1000msFlag = 0;
 	  }
