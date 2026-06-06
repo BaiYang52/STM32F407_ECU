@@ -31,7 +31,7 @@ extern float32 g_HEATM_TemperatureC;
 /* ==================== Runnable 声明 ==================== */
 
 void HEATM_Run_Temperature(void);
-
+#define Write_ECU_Temperature_To_TxMessage Rte_Write_EcuStatus_Port_ECU_Temperature
 #ifdef __cplusplus
 }
 #endif

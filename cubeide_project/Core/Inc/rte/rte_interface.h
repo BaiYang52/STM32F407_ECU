@@ -15,6 +15,7 @@ extern "C"
 
 #include "rte_types.h"
 #include "types.h"
+#include "gpio_driver.h"
 
     /* ============= MCAL Actuator Interfaces (SR ports) ============= */
 
@@ -129,6 +130,8 @@ extern "C"
 
     Std_ReturnType Rte_Read_VehicleCtrl_Signal_State(uint8 *state);
 
+    Dio_LevelType Rte_Read_Key1_State(void);
+    Dio_LevelType Rte_Read_Key0_State(void);
 
 #ifdef __cplusplus
 }

@@ -13,7 +13,7 @@
  *******************************************************************************/
 #include "Std_Types.h"
 //#include "Dcm.h"
-#include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\bsw\dcm\Dcm.h"
+#include <dcm/Dcm.h>
 //#include "Flash_Manager.h"
 //#include "Can_Manager.h"
 //#include "Led_Manager.h"

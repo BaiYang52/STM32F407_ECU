@@ -10,10 +10,10 @@
  *   #3 DS18B20 读取温度 → 设置 ECU_Temperature
  */
 
-#include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\asw\heatm.h"
-#include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\rte\rte_interface.h"
-#include "test_heat.h"     /* Mcal_DS18B20_ReadTemperature */
-#include "common.h"
+#include <asw/heatm.h>
+#include <rte/rte_interface.h>
+#include <ds18b20_driver.h>     /* Mcal_DS18B20_ReadTemperature */
+#include <common.h>
 
 /* ==================== 全局变量 ==================== */
 
@@ -56,5 +56,5 @@ void HEATM_Run_Temperature(void)
     }
 
     /* 写入 Com */
-    (void)Rte_Write_EcuStatus_Port_ECU_Temperature(ecuTempRaw);
+    (void)Write_ECU_Temperature_To_TxMessage(ecuTempRaw);
 }

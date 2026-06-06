@@ -11,7 +11,7 @@
  * INCLUDES
  *******************************************************************************/
 #include "Std_Types.h"
-#include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\bsw\dcm\Dcm.h"
+#include <dcm/Dcm.h>
 //#include "Nvm.h"
 //#include "Nvram_Manager.h"
 //#include "Crc.h"

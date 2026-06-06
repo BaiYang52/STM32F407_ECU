@@ -6,7 +6,7 @@
  * 每个 Rte_Read/Rte_Write 直接映射到 Com_ReadSignal/Com_WriteSignal。
  */
 
-#include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\rte\rte_interface.h"
+#include <rte/rte_interface.h>
 #include "com.h"
 #include "common.h"
 #include "pwm_driver.h"
@@ -113,4 +113,14 @@ Std_ReturnType Rte_Read_EcuNM_Port_NM_Wakeup_Reason(uint8 *Data)
 {
     if (Data == NULL_PTR) return STD_NOT_OK;
     return Com_ReadSignal(COM_SIG_NM_WAKE_REASON, (void *)Data);
+}
+
+Dio_LevelType Rte_Read_Key1_State(void)
+{
+    return Dio_ReadChannel(DIO_CH_KEY1) ;
+}
+
+Dio_LevelType Rte_Read_Key0_State(void)
+{
+    return Dio_ReadChannel(DIO_CH_KEY0) ;
 }

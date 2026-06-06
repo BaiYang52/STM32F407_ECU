@@ -215,7 +215,7 @@ int main(void)
 		  PduR_MainFunction();                /* PduR + CANtp 状态机 (UDS收发+超时) */
 
 		  /* ── ASW 轮询 ── */
-//		  Dim_MainFunction();
+		  Dim_MainFunction();
 
 		  /* ── RTE + ASW 层 10ms Runnable ── */
 //		  Rte_MainFunction_10ms();            /* DIM(FAN) 10ms: LED+Motor */

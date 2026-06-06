@@ -407,4 +407,20 @@ void Com_RxIndication(const CanIf_Pdu *Pdu)
      printf("motorcmd %d\n",motorcmd);
      Com_ReadSignal(COM_SIG_LED_SWITCH_CMD,&ledcmd);
      printf("ledcmd %d\n",ledcmd);
+     uint8 b1=1;
+     uint8 b2=2;
+     uint8 vol=33;
+     uint8 tem=100;
+     uint16 ct=500;
+     uint8 errorcode=0x12;
+     Com_WriteSignal(COM_SIG_BUTTON1_STATUS,&b1);
+     Com_WriteSignal(COM_SIG_BUTTON2_STATUS,&b2);
+     Com_WriteSignal(COM_SIG_SYS_VOLTAGE,&vol);
+     Com_WriteSignal(COM_SIG_ECU_TEMP,&tem);
+    Com_WriteSignal(COM_SIG_FLASH_COUNTER,&ct);
+    Com_WriteSignal(COM_SIG_ECU_ERROR_CODE,&errorcode);
+
+
+
+
  }

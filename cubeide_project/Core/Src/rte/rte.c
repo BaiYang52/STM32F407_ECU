@@ -10,7 +10,7 @@
  *   1000ms→ DIM_IGNDetect, HEATM_Temperature
  */
 
-#include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\rte\rte.h"
+#include <rte/rte.h>
 #include "common.h"
 
 FUNC(void, RTE_CODE)

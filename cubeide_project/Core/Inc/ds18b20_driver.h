@@ -3,8 +3,8 @@
  * @brief AUTOSAR标准类型定义
  */
 
-#ifndef __TYPES_H
-#define __TYPES_H
+#ifndef DS18B20_H
+#define DS18B20_H
 
 #include <stdint.h>
 #include <stddef.h>

@@ -11,8 +11,8 @@
  *   #2 Motor_Switch_Cmd → 设置电机 PWM on/off → Pwm_SetDutyPercent
  */
 
-#include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\asw\fan.h"
-#include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\rte\rte_interface.h"
+#include <asw/fan.h>
+#include <rte/rte_interface.h>
 #include "pwm_driver.h"
 #include "gpio_driver.h"
 #include "common.h"

@@ -15,8 +15,8 @@
  *   #6 KEY1/KEY0 按键状态 (0:未按, 1:按下, 2:无效/长按>30s)
  */
 
-#include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\asw\dim.h"
-#include "E:\Project\Github\STM32F407_ECU\cubeide_project\Core\Inc\rte\rte_interface.h"
+#include <asw/dim.h>
+#include <rte/rte_interface.h>
 #include "gpio_driver.h"
 #include "common.h"
 #include "stdio.h"

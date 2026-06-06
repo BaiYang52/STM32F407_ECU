@@ -4,8 +4,8 @@
  * @version 1.0.0
  */
 
+#include <ds18b20_driver.h>
 #include "main.h"
-#include "test_heat.h"
 #include "stdio.h"
 
 /* ==================== 时序定义 ==================== */
