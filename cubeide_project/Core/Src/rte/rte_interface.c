@@ -162,3 +162,10 @@ Std_ReturnType Rte_Hal_Rng_GenerateRandomNumber(uint32 *RandomValue_Ptr)
 
     return STD_OK;
 }
+
+/* ============= MCAL System Tick Interface ============= */
+
+uint32 Rte_Hal_GetTick(void)
+{
+    return HAL_GetTick();
+}

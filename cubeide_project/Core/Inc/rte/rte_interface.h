@@ -145,6 +145,18 @@ extern "C"
      */
     Std_ReturnType Rte_Hal_Rng_GenerateRandomNumber(uint32 *RandomValue_Ptr);
 
+    /* ============= MCAL System Tick Interface ============= */
+
+    /**
+     * @brief 获取系统Tick计数值 (RTE → MCAL SysTick)
+     * 
+     * 封装HAL_GetTick(), 返回系统自启动以来的毫秒计数值。
+     * 用于超时判断、时间戳记录等场景。
+     * 
+     * @return uint32  系统毫秒计数值 (自启动起的ms数)
+     */
+    uint32 Rte_Hal_GetTick(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -745,15 +745,13 @@ void SchM_Task100ms(void)
 
     /* ── MCAL BusOff ── */
 	Can_MainFunction_BusOff();
-
-
 }
 
 void SchM_Task1000ms(void)
 {
-  s_task1000msFlag = 0;
+	s_task1000msFlag = 0;
 
-  // Com_TestFunction();
+	// Com_TestFunction();
 }
 /* USER CODE END 4 */
 

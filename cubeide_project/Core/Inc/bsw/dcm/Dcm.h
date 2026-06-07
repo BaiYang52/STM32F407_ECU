@@ -202,6 +202,8 @@ extern boolean Dcm_DTCSettingEnabled;
 extern boolean Dcm_SuppressPositiveResponse; 
 
 extern boolean Dcm_SuppressNegativeResponse; 
+
+extern boolean Dcm_SecurityAccessSequence;
 /*******************************************************************************
  * DCM CORE FUNCTION DECLARATIONS
  *******************************************************************************/

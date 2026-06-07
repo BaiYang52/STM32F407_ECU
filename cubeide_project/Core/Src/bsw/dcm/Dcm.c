@@ -608,6 +608,7 @@ static Std_ReturnType Dcm_SwitchSession(uint8 NewSession)
     Dcm_LastSession = Dcm_CurrentSession;
     Dcm_CurrentSession = NewSession;
     Dcm_SecurityLevel1Unlocked = FALSE;
+    Dcm_SecurityAccessSequence = FALSE; 
     Dcm_CommState = DCM_COMM_RX_TX_ENABLED;
     Dcm_ResetS3Timer();
     return E_OK;

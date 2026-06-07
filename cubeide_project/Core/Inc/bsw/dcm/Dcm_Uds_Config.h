@@ -23,7 +23,6 @@ extern "C" {
  * ├── src/
  * │   ├── bsw/
  * │   │   ├── mcal/
- * │   │   ├── services/
  * │   │   │   └── dcm/
  * │   │   │       ├── Dcm.h                    (Core API + service declarations)
  * │   │   │       ├── Dcm.c                    (Core + 0x10, 0x3E)
@@ -33,20 +32,6 @@ extern "C" {
  * │   │   │       ├── Dcm_Uds_CommunicationControl.c (0x28)
  * │   │   │       ├── Dcm_Uds_ControlDTCSetting.c    (0x85)
  * │   │   │       └── Dcm_Uds_Config.h         (This file)
- * │   │   └── communication/
- * │   │       └── can/
- * │   │
- * │   └── app/
- * │       ├── diagnostics/
- * │       └── main.c
- * │
- * ├── include/
- * │   ├── Std_Types.h
- * │   ├── Dcm.h
- * │   └── ...
- * │
- * └── test/
- *     └── test_uds_services.c
  *
  *******************************************************************************/
 
@@ -250,6 +235,8 @@ extern const Dcm_DidConfigType Dcm_DidConfigTable[DCM_NUM_SUPPORTED_DIDS];
  */
 extern const Dcm_RoutineConfigType Dcm_RoutineConfigTable[DCM_NUM_SUPPORTED_ROUTINES];
 
+#define Rng_GenerateRandomNumber Rte_Hal_Rng_GenerateRandomNumber
+#define GetSystemTick Rte_Hal_GetTick
 /*******************************************************************************
  * INTEGRATION CHECKLIST
  *******************************************************************************/

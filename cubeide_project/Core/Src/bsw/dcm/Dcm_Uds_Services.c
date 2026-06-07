@@ -14,6 +14,7 @@
 #include "common.h"
 #include <bsw/dcm/Dcm.h>
 #include <bsw/dcm/Dcm_Uds_Config.h>
+#include <rte/rte_interface.h>
 
 /*******************************************************************************
  * DEFINES
@@ -31,6 +32,9 @@
 /* Security Access Seed Length */
 #define SECURITY_SEED_LENGTH                DCM_SECURITY_SEED_LENGTH
 #define SECURITY_KEY_LENGTH                 DCM_SECURITY_KEY_LENGTH
+#define ATTEMPT_COUNTER_LIMIT               3U
+#define ATTEMPT_COUNTER_LIMIT_TIME          10000U
+
 
 /*******************************************************************************
  * LOCAL VARIABLES
@@ -39,6 +43,9 @@
 /* Security Access Variables */
 static uint8 Dcm_SecuritySeed_Level1[SECURITY_SEED_LENGTH];
 static uint32 Dcm_SecurityAttemptCounter = 0U;
+static uint32 Dcm_SecurityLockTime = 0U;
+boolean Dcm_SecurityAccessSequence = FALSE;
+
 const uint8 DID_F183_ECU_NAME[16] = {'S','T','M','3','2','V','E','T','6',' ',' ',' ',' ',' ',' ',' '};
 
 /*******************************************************************************
@@ -397,29 +404,31 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_SecurityAccess_0x27(
     subFunction = Dcm_Ptr->Sdu[1];
 
     switch (subFunction) {
-    case 0x01U: /* requestSeed */
-    case 0x02U: /* sendKey */
-        break;
-    default:
-        *ErrorCode_Ptr = DCM_E_SUBFUNCTION_NOT_SUPPORTED;
-        return E_NOT_OK;
+        case 0x01U: /* requestSeed */
+            break;
+        case 0x02U: /* sendKey */
+            break;
+        default:
+            *ErrorCode_Ptr = DCM_E_SUBFUNCTION_NOT_SUPPORTED;
+            return E_NOT_OK;
     }
 
     if ((subFunction & 0x01U) == 0x01U) {
+        if (Dcm_Ptr->SduLength > 2U) {
+            *ErrorCode_Ptr = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
+            return E_NOT_OK;
+        }
         retVal = Dcm_RequestSeed_Level1(
             &RespData_Ptr->Sdu[2],
             (uint16 *)RespData_Len_Ptr,
             ErrorCode_Ptr
         );
 
-        if (E_OK != retVal) {
-            return E_NOT_OK;
-        }
-
         RespData_Ptr->Sdu[1] = subFunction;
         *RespData_Len_Ptr += 2U;
-    } else {
-        if (Dcm_Ptr->SduLength < 6U) {
+    } 
+    else {
+        if (Dcm_Ptr->SduLength != 2U+SECURITY_KEY_LENGTH) {
             *ErrorCode_Ptr = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
             return E_NOT_OK;
         }
@@ -430,12 +439,12 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_SecurityAccess_0x27(
             ErrorCode_Ptr
         );
 
-        if (E_OK != retVal) {
-            return E_NOT_OK;
-        }
-
         RespData_Ptr->Sdu[1] = subFunction;
         *RespData_Len_Ptr = 2U;
+    }
+
+    if (E_OK != retVal) {
+        return E_NOT_OK;
     }
 
     return E_OK;
@@ -451,14 +460,27 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestSeed_Level1(
         (NULL_PTR == ErrorCode_Ptr)) {
         return E_NOT_OK;
     }
-    
-    /* Generate random seed */
-    Dcm_GenerateSecuritySeed(Dcm_SecuritySeed_Level1, SECURITY_SEED_LENGTH);
+
+    if(Dcm_SecurityAccessSequence == FALSE){
+        /* Generate random seed */
+        Dcm_GenerateSecuritySeed(Dcm_SecuritySeed_Level1, SECURITY_SEED_LENGTH);
+    } else { /*If already request seed */ } 
     
     /* Copy seed to response */
-    for (uint8 i = 0U; i < SECURITY_SEED_LENGTH; i++) {
-        SeedData_Ptr[i] = Dcm_SecuritySeed_Level1[i];
+    if(Dcm_GetSecurityLevel()==0U)
+    {
+        MEMCPY(SeedData_Ptr,Dcm_SecuritySeed_Level1,SECURITY_SEED_LENGTH);
+        /* Set security access sequence flag */
+        Dcm_SecurityAccessSequence = TRUE; 
+    } else {
+        MEMSET(SeedData_Ptr, 0U, SECURITY_SEED_LENGTH);
+        /* Reset security access sequence flag if already unlocked */
+        Dcm_SecurityAccessSequence = FALSE; 
     }
+
+    // for (uint8 i = 0U; i < SECURITY_SEED_LENGTH; i++) {
+    //     SeedData_Ptr[i] = Dcm_SecuritySeed_Level1[i];
+    // }
     
     *SeedLength_Ptr = SECURITY_SEED_LENGTH;
     
@@ -478,12 +500,6 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level1(
         return E_NOT_OK;
     }
     
-    /* Check key length */
-    if (KeyLength != SECURITY_KEY_LENGTH) {
-        *ErrorCode_Ptr = DCM_E_INVALID_KEY;
-        return E_NOT_OK;
-    }
-    
     /* Calculate expected key from seed */
     calculatedKey = Dcm_CalculateSecurityKey(Dcm_SecuritySeed_Level1, 
                                               SECURITY_SEED_LENGTH);
@@ -492,12 +508,29 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level1(
     receivedKey = (uint32)((KeyData_Ptr[0] << 24U) | (KeyData_Ptr[1] << 16U) | 
                            (KeyData_Ptr[2] << 8U) | KeyData_Ptr[3]);
     
+    if(Dcm_SecurityAccessSequence == FALSE)
+    {
+        *ErrorCode_Ptr = DCM_E_REQUEST_SEQUENCE_ERROR;
+        return E_NOT_OK;
+    }
+
+    if((GetSystemTick()-Dcm_SecurityLockTime < ATTEMPT_COUNTER_LIMIT_TIME) &&
+        (Dcm_SecurityAttemptCounter >= ATTEMPT_COUNTER_LIMIT))
+    {   /* <10s Not allowed attempt */
+        *ErrorCode_Ptr = DCM_E_REQUIRED_TIME_DELAY_NOT_EXPIRED;
+        return E_NOT_OK;
+    } else if ((GetSystemTick()-Dcm_SecurityLockTime >= ATTEMPT_COUNTER_LIMIT_TIME) && 
+               (Dcm_SecurityAttemptCounter >= ATTEMPT_COUNTER_LIMIT))
+    {   /* Allow one more attempt after lock time expires */
+        Dcm_SecurityAttemptCounter = ATTEMPT_COUNTER_LIMIT-1U; 
+    } else { /* do nothing */ }
+
     /* Validate key */
     if (calculatedKey != receivedKey) {
         Dcm_SecurityAttemptCounter++;
-        
-        if (Dcm_SecurityAttemptCounter >= 3U) {
+        if (Dcm_SecurityAttemptCounter >= ATTEMPT_COUNTER_LIMIT) {
             *ErrorCode_Ptr = DCM_E_EXCEEDED_NUMBER_OF_ATTEMPTS;
+            Dcm_SecurityLockTime = GetSystemTick();
             return E_NOT_OK;
         }
         
@@ -508,6 +541,7 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level1(
     /* Unlock security level 1 */
     Dcm_SetSecurityLevel(1U, TRUE);
     Dcm_SecurityAttemptCounter = 0U;
+    Dcm_SecurityAccessSequence = FALSE; /* Reset security access sequence flag */
     
     return E_OK;
 }
@@ -641,13 +675,23 @@ static FUNC(void, DCM_CODE) Dcm_GenerateSecuritySeed(
     uint16 SeedLength
 )
 {
-    /* Simple pseudo-random seed generation using system tick counter */
-    /* In production, use a proper RNG */
-    uint32 tickCounter = 0U;  /* Should be replaced with SysTick_Get() or similar */
-    
-    for (uint16 i = 0U; i < SeedLength; i++) {
-        tickCounter = (tickCounter * 1103515245U + 12345U) & 0x7fffffffU;
-        SeedBuffer_Ptr[i] = (uint8)(tickCounter >> (8U * (i % 4U)));
+    /* Use hardware RNG via RTE interface for true randomness */
+    uint32 randomValue = 0U;
+    uint16 bytesGenerated = 0U;
+
+    while (bytesGenerated < SeedLength)
+    {
+        if (Rng_GenerateRandomNumber(&randomValue) != STD_OK)
+        {
+            /* Fallback: use simple LCG if hardware RNG fails */
+            randomValue = (randomValue * 1103515245U + 12345U) & 0x7fffffffU;
+        }
+
+        for (uint8 byteIdx = 0U; (byteIdx < 4U) && (bytesGenerated < SeedLength); byteIdx++)
+        {
+            SeedBuffer_Ptr[bytesGenerated] = (uint8)(randomValue >> (8U * byteIdx));
+            bytesGenerated++;
+        }
     }
 }
 
