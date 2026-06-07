@@ -60,6 +60,7 @@ void APP_Run_KeyState(void)
 {
    (void)Write_Button_1_Status_To_TxMessage((uint8)APP_Get_Key1DebounceState());
    (void)Write_Button_2_Status_To_TxMessage((uint8)APP_Get_Key0DebounceState());
+   
 }
 
 /**

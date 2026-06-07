@@ -64,24 +64,34 @@ typedef enum
 
 static boolean Dcm_Initialized = FALSE;
 static Dcm_StateType Dcm_State = DCM_STATE_UNINIT;
-uint8 Dcm_CurrentSession = DCM_SESSION_DEFAULT;
-DCM_AddressType Dcm_RequestAddressType = DCM_SESSION_DEFAULT;
+
+
 static uint8 Dcm_LastSession = DCM_SESSION_DEFAULT;
-static boolean Dcm_SecurityLevel1Unlocked = FALSE;
-static boolean Dcm_DTCSettingEnabled = TRUE;
+
 static Dcm_CommStateType Dcm_CommState = DCM_COMM_RX_TX_ENABLED;
 static uint32 Dcm_S3Timer = 0U;
 static uint8 Dcm_ResponseBuffer[DCM_RESPONSE_BUFFER_SIZE];
 static uint16 Dcm_ResponseLength = 0U;
 static boolean Dcm_NeedNegativeResponse = FALSE;
 static boolean Dcm_NeedResponse = FALSE;
-static boolean Dcm_SuppressPositiveResponse = FALSE;
 static uint8 Dcm_CurrentRequestSID = 0U;
 static uint8 Dcm_CurrentRequestSubFunction = 0U;
 
 /*******************************************************************************
  * GLOBAL VARIABLES
  *******************************************************************************/
+
+DCM_AddressType Dcm_RequestAddressType = DCM_ADDRESS_PHYSICAL;
+
+uint8 Dcm_CurrentSession = DCM_SESSION_DEFAULT;
+
+boolean Dcm_SecurityLevel1Unlocked = FALSE;
+
+boolean Dcm_DTCSettingEnabled = TRUE;
+
+boolean Dcm_SuppressPositiveResponse = FALSE;  
+
+boolean Dcm_SuppressNegativeResponse = FALSE;
 
 /**
  * @brief 全局否定响应码
@@ -140,6 +150,7 @@ FUNC(void, DCM_CODE) Dcm_Init(void)
     Dcm_S3Timer            = 0U;
     Dcm_NeedResponse       = FALSE;
     Dcm_NeedNegativeResponse = FALSE;
+    Dcm_SuppressNegativeResponse = FALSE;
     Dcm_SuppressPositiveResponse = FALSE;
     Dcm_Global_NegativeResponseCode = 0U;
 
@@ -240,9 +251,9 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
     }
 
     if (PduId == DCM_ADDRESS_FUNCTIONAL) {
-        Dcm_SuppressPositiveResponse = TRUE;
+        Dcm_SuppressNegativeResponse = TRUE;
     } else {
-        Dcm_SuppressPositiveResponse = FALSE;
+        Dcm_SuppressNegativeResponse = FALSE;
     }
     Dcm_RequestAddressType = PduId;
 
@@ -251,19 +262,6 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
     }
 
     sid = Data[0];
-    Dcm_CurrentRequestSID = sid;
-
-    Dcm_NeedResponse       = FALSE;
-    Dcm_NeedNegativeResponse = FALSE;
-    Dcm_ResponseLength     = 0U;
-    Dcm_Global_NegativeResponseCode = 0U;  /* 复位全局 NRC */
-
-    if ((sid & 0x80U) != 0U) {
-        Dcm_SuppressPositiveResponse = TRUE;
-        sid &= 0x7FU;
-        Dcm_CurrentRequestSID = sid;
-    }
-
     if (Length >= 2U) {
         subFunction = Data[1];
         Dcm_CurrentRequestSubFunction = subFunction;
@@ -271,6 +269,21 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
         subFunction = 0U;
         Dcm_CurrentRequestSubFunction = subFunction;
     }
+    Dcm_CurrentRequestSID = sid;
+
+    Dcm_NeedResponse       = FALSE;
+    Dcm_NeedNegativeResponse = FALSE;
+    Dcm_ResponseLength     = 0U;
+    Dcm_Global_NegativeResponseCode = 0U;  /* 复位全局 NRC */
+    Dcm_SuppressPositiveResponse = FALSE;
+
+    // if ((sid & 0x80U) != 0U) {
+    //     Dcm_SuppressPositiveResponse = TRUE;
+    //     sid &= 0x7FU;
+    //     Dcm_CurrentRequestSID = sid;
+    // }else {
+    //     Dcm_SuppressPositiveResponse = FALSE;
+    // }
 
     Dcm_ResetS3Timer();
 
@@ -500,15 +513,21 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
      * 发送响应
      * ======================================================================== */
 
-    if (Dcm_SuppressPositiveResponse) {
-        return;
-    }
+    // if (Dcm_SuppressPositiveResponse) {
+    //     return;
+    // }
 
     if (Dcm_NeedNegativeResponse) {
         /* 使用全局 NRC：可能由外部服务文件设置 */
         Dcm_BuildNegativeResponse(Dcm_CurrentRequestSID, Dcm_Global_NegativeResponseCode);
+        if (Dcm_SuppressNegativeResponse) { /* 抑制功能寻址的否定响应 */
+            return;
+        }
     } else if (Dcm_NeedResponse) {
         /* 肯定响应已在 Dcm_ResponseBuffer 中 */
+        if (Dcm_SuppressPositiveResponse) { /* 抑制肯定响应 */
+            return;
+        }
     } else {
         return;
     }
@@ -520,6 +539,15 @@ static void Dcm_PduRTxCallback(PduR_PduIdType PduId, Std_ReturnType Result)
 {
     (void)PduId;
     (void)Result;
+}
+
+static void Dcm_CheckIfSuppressPositiveResponse(uint8 subfunction)
+{
+    if ((subfunction & 0x80U) != 0U) {
+        Dcm_SuppressPositiveResponse = TRUE;
+    } else {
+        Dcm_SuppressPositiveResponse = FALSE;
+    }
 }
 
 /*******************************************************************************
@@ -639,6 +667,7 @@ static Std_ReturnType Dcm_Service_DiagnosticSessionControl_0x10(
         return E_NOT_OK;
     }
 
+    Dcm_CheckIfSuppressPositiveResponse(RequestData[1]);
     ResponseData[0] = 0x50U;        /* 0x10 + 0x40 */
     ResponseData[1] = subFunction;
     ResponseData[2] = (uint8)(DCM_P2_SERVER_MAX >> 8U);
@@ -660,6 +689,7 @@ static Std_ReturnType Dcm_Service_TesterPresent_0x3E(
     CONSTP2VAR(uint16, AUTOMATIC, DCM_APPL_DATA) ResponseLength)
 {
     uint8 subFunction;
+    subFunction = RequestData[1];
 
     if ((RequestData == NULL_PTR) || (ResponseData == NULL_PTR) ||
         (ResponseLength == NULL_PTR)) {
@@ -671,18 +701,7 @@ static Std_ReturnType Dcm_Service_TesterPresent_0x3E(
         return E_NOT_OK;
     }
 
-    subFunction = RequestData[1];
-
-    if (subFunction == 0x80U) { /*3E 80*/
-        Dcm_SuppressPositiveResponse = TRUE;
-        if (RequestLength > 2U) { /* reject 3E 80 ** */
-            Dcm_SuppressPositiveResponse = FALSE;
-            Dcm_Global_NegativeResponseCode = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
-            return E_NOT_OK;
-        }
-    }
-
-    if (subFunction != 0x00U) {
+    if ((subFunction&0x7F) != 0x00U) {
         Dcm_Global_NegativeResponseCode = DCM_E_SUBFUNCTION_NOT_SUPPORTED;
         return E_NOT_OK;
     }
@@ -692,6 +711,7 @@ static Std_ReturnType Dcm_Service_TesterPresent_0x3E(
         return E_NOT_OK;
     }
 
+    Dcm_CheckIfSuppressPositiveResponse(subFunction);
     Dcm_ResetS3Timer();
 
     ResponseData[0] = 0x7EU;        /* 0x3E + 0x40 */

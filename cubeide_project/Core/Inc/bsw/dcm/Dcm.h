@@ -190,7 +190,18 @@ typedef struct {
  * 设置此变量后由 Dcm.c 的 dispatcher 读取并构建否定响应。
  */
 extern uint8 Dcm_Global_NegativeResponseCode;
+
+extern DCM_AddressType Dcm_RequestAddressType;
+
 extern uint8 Dcm_CurrentSession;
+
+extern boolean Dcm_SecurityLevel1Unlocked;
+
+extern boolean Dcm_DTCSettingEnabled;
+
+extern boolean Dcm_SuppressPositiveResponse; 
+
+extern boolean Dcm_SuppressNegativeResponse; 
 /*******************************************************************************
  * DCM CORE FUNCTION DECLARATIONS
  *******************************************************************************/
