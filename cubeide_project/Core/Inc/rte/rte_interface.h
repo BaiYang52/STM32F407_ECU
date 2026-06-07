@@ -13,7 +13,6 @@ extern "C"
 {
 #endif
 
-#include "rte_types.h"
 #include "types.h"
 #include "gpio_driver.h"
 
@@ -132,6 +131,19 @@ extern "C"
 
     Dio_LevelType Rte_Read_Key1_State(void);
     Dio_LevelType Rte_Read_Key0_State(void);
+
+    /* ============= MCAL Random Number Generator Interface ============= */
+
+    /**
+     * @brief 通过HAL RNG生成32位硬件随机数 (RTE → MCAL RNG)
+     * 
+     * 该接口封装STM32硬件随机数发生器, 为安全种子生成、密钥协商等
+     * 提供真随机数源。
+     * 
+     * @param[out] RandomValue_Ptr  指向存放32位随机数的内存
+     * @return Std_ReturnType  STD_OK 生成成功, STD_NOT_OK 生成失败
+     */
+    Std_ReturnType Rte_Hal_Rng_GenerateRandomNumber(uint32 *RandomValue_Ptr);
 
 #ifdef __cplusplus
 }

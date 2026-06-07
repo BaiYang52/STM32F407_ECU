@@ -10,6 +10,8 @@
 #include "com.h"
 #include "common.h"
 #include "pwm_driver.h"
+#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_rng.h"
 
 /* ============= MCAL Actuator Interfaces (SR ports) ============= */
 
@@ -123,4 +125,40 @@ Dio_LevelType Rte_Read_Key1_State(void)
 Dio_LevelType Rte_Read_Key0_State(void)
 {
     return Dio_ReadChannel(DIO_CH_KEY0) ;
+}
+
+/* ============= MCAL Random Number Generator Interface ============= */
+
+Std_ReturnType Rte_Hal_Rng_GenerateRandomNumber(uint32 *RandomValue_Ptr)
+{
+    if (NULL_PTR == RandomValue_Ptr)
+    {
+        return STD_NOT_OK;
+    }
+
+    RNG_HandleTypeDef hrng;
+    HAL_StatusTypeDef hal_status;
+
+    /* 获取RNG HAL驱动默认实例 */
+    hrng.Instance = RNG;
+
+    /* 使能RNG时钟 */
+    __HAL_RCC_RNG_CLK_ENABLE();
+
+    /* 初始化RNG */
+    hal_status = HAL_RNG_Init(&hrng);
+    if (HAL_OK != hal_status)
+    {
+        return STD_NOT_OK;
+    }
+
+    /* 生成32位硬件随机数 */
+    hal_status = HAL_RNG_GenerateRandomNumber(&hrng, RandomValue_Ptr);
+    if (HAL_OK != hal_status)
+    {
+        HAL_RNG_DeInit(&hrng);
+        return STD_NOT_OK;
+    }
+
+    return STD_OK;
 }
