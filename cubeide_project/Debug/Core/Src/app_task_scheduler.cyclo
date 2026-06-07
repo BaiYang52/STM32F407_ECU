@@ -1,3 +1,0 @@
-../Core/Src/app_task_scheduler.c:21:6:App_System_Init	1
-../Core/Src/app_task_scheduler.c:31:6:App_TaskScheduler_Init	1
-../Core/Src/app_task_scheduler.c:40:6:HAL_SYSTICK_Callback	4

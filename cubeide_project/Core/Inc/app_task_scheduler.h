@@ -15,6 +15,7 @@ extern "C" {
 #include <stdint.h>
 
 /* 外部任务标志 (由SysTick中断设置) */
+extern uint8_t s_task1msFlag;
 extern uint8_t s_task10msFlag;
 extern uint8_t s_task100msFlag;
 extern uint8_t s_task1000msFlag;

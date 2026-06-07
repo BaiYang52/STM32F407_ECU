@@ -37,38 +37,46 @@ extern "C" {
  */
 typedef enum
 {
-    /* ── ECU_Status (0x1A0) ── */
-    COM_SIG_CHECKSUM       = 0U,    /**< Byte0, Intel 0-7, CRC */
-    COM_SIG_ROLL_COUNTER   = 1U,    /**< Byte1, Intel 0-3, Roll Counter */
-    COM_SIG_IGN_STATUS     = 2U,    /**< Byte2, Intel 0-1 */
-    COM_SIG_BUTTON1_STATUS = 3U,    /**< Byte2, Intel 2-3 */
-    COM_SIG_BUTTON2_STATUS = 4U,    /**< Byte2, Intel 4-5 */
-    COM_SIG_SYS_VOLTAGE    = 5U,    /**< Byte3, Intel 0-7 */
-    COM_SIG_ECU_TEMP       = 6U,    /**< Byte4, Intel 0-7 */
-    COM_SIG_LED_PWM_DUTY   = 7U,    /**< Byte5, Intel 0-7 */
+    /* ── ECU_Status (0x1A0, TX, Motorola @1+) ── */
+    COM_SIG_ROLL_COUNTER   = 0U,    /**< Byte0, bit0-3, DBC: 0|4 */
+    COM_SIG_CHECKSUM       = 1U,    /**< Byte1, bit0-7, DBC: 8|8 */
+    COM_SIG_BUTTON1_STATUS = 2U,    /**< Byte2, bit0-1, DBC: 16|2 */
+    COM_SIG_BUTTON2_STATUS = 3U,    /**< Byte2, bit2-3, DBC: 18|2 */
+    COM_SIG_SYS_VOLTAGE    = 4U,    /**< Byte3, bit0-7, DBC: 24|8 */
+    COM_SIG_ECU_TEMP       = 5U,    /**< Byte4, bit0-7, DBC: 32|8 */
+    COM_SIG_LED_PWM_DUTY   = 6U,    /**< Byte5, bit0-7, DBC: 40|8 */
 
-    /* ── ECU_LifeCycle (0x3A0) ── */
-    COM_SIG_FLASH_COUNTER  = 8U,    /**< Byte0-1, Intel 0-15 */
-    COM_SIG_ECU_ERROR_CODE = 9U,    /**< Byte2, Intel 0-7 */
+    /* ── ECU_LifeCycle (0x3A0, TX, Motorola @1+) ── */
+    COM_SIG_FLASH_COUNTER  = 7U,    /**< Byte0-1, DBC: 0|16 (Motorola MSB first) */
+    COM_SIG_ECU_ERROR_CODE = 8U,    /**< Byte2, DBC: 16|8 */
 
-    /* ── Vehicle_Ctrl (0x210, RX) ── */
-    COM_SIG_VCU_CHECKSUM       = 10U, /**< Byte0, Intel 0-7 */
-    COM_SIG_VCU_ROLL_COUNTER   = 11U, /**< Byte1, Intel 0-3 */
-    COM_SIG_VEH_SPEED          = 12U, /**< Byte2-3, Intel 0-15 */
-    COM_SIG_ENGINE_SPEED       = 13U, /**< Byte4-5, Intel 0-15 */
-    COM_SIG_LED_SWITCH_CMD     = 14U, /**< Byte6, Intel 0-1 */
-    COM_SIG_MOTOR_SWITCH_CMD   = 15U, /**< Byte6, Intel 2-3 */
+    /* ── Vehicle_Ctrl (0x210, RX, Motorola @1+) ── */
+    COM_SIG_VCU_ROLL_COUNTER       = 9U,  /**< Byte0, bit0-3, DBC: 0|4 */
+    COM_SIG_VCU_CHECKSUM           = 10U, /**< Byte1, bit0-7, DBC: 8|8 */
+    COM_SIG_LED_BRIGHTNESS_LEVEL   = 11U, /**< Byte2, bit0-3, DBC: 16|4 */
+    COM_SIG_IGN_STATUS             = 12U, /**< Byte2, bit4-5, DBC: 20|2 */
+    COM_SIG_VEH_SPEED              = 13U, /**< Byte3-4, DBC: 24|16 (Motorola: Byte3=MSB) */
+    COM_SIG_ENGINE_SPEED           = 14U, /**< Byte5-6, DBC: 40|16 (Motorola: Byte5=MSB) */
+    COM_SIG_MOTOR_SWITCH_CMD       = 15U, /**< Byte7, bit0-1, DBC: 56|2 */
+    COM_SIG_LED_SWITCH_CMD         = 16U, /**< Byte7, bit2-3, DBC: 58|2 */
 
-    /* ── ECU_NM_0x415 (TX) ── */
-    COM_SIG_NM_NID        = 16U,     /**< Byte0, Intel 0-7 */
-    COM_SIG_NM_CBV        = 17U,     /**< Byte1, Intel 0-7 */
-    COM_SIG_NM_REPEAT_MSG = 18U,     /**< Byte2, Intel 0 */
-    COM_SIG_NM_ACTIVE_WAKE = 19U,    /**< Byte2, Intel 1 */
-    COM_SIG_NM_SLEEP_IND  = 20U,     /**< Byte2, Intel 2 */
-    COM_SIG_NM_WAKE_REASON = 21U,    /**< Byte3, Intel 0-7 */
+    /* ── ECU_NM_0x415 (TX, Intel @0+) ── */
+    COM_SIG_NM_NID        = 17U,     /**< Byte0, Intel 0-7 */
+    COM_SIG_NM_CBV        = 18U,     /**< Byte1, Intel 0-7 */
+    COM_SIG_NM_REPEAT_MSG = 19U,     /**< Byte2, Intel 0 */
+    COM_SIG_NM_ACTIVE_WAKE = 20U,    /**< Byte2, Intel 1 */
+    COM_SIG_NM_SLEEP_IND  = 21U,     /**< Byte2, Intel 2 */
+    COM_SIG_NM_WAKE_REASON = 22U,    /**< Byte3, Intel 0-7 */
 
     COM_SIG_MAX                    /**< 信号总数 */
 } Com_SignalIdType;
+
+typedef enum
+{
+    msg_never_received = 0U,
+    msg_normal = 1U,
+    msg_timeout = 2U
+}Com_SignalStateType;
 
 /* ==================== PDU ID 枚举 ==================== */
 
@@ -128,11 +136,13 @@ Com_ReadSignal(
  * @brief 获取信号超时状态
  *
  * @param[in] SignalId 信号 ID
+ * @param[out] SignalState 信号状态指针
  * @return boolean TRUE = 超时
  */
 FUNC(boolean, COM_CODE)
-Com_GetSignalTimeout(
-    Com_SignalIdType SignalId
+Com_GetSignalState(
+    Com_SignalIdType SignalId,
+    Com_SignalStateType *SignalState
 );
 
 /**
@@ -143,6 +153,9 @@ Com_GetSignalTimeout(
 void Com_RxIndication(
     CONSTP2CONST(CanIf_Pdu, AUTOMATIC, COM_APPL_DATA) Pdu
 );
+
+/*Com Test function */
+FUNC(void, COM_CODE) Com_TestFunction(void);
 
 #ifdef __cplusplus
 }

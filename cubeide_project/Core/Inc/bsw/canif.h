@@ -148,12 +148,22 @@ CanIf_SetTxConfirmation(
 );
 
 /**
- * @brief 注册 RX 指示回调
+ * @brief 注册 RX 指示回调 (Com)
  *
  * @param[in] Callback 回调函数指针
  */
 FUNC(void, CAN_CODE)
 CanIf_SetRxIndication(
+    CanIf_RxIndication Callback
+);
+
+/**
+ * @brief 注册 RX 指示回调 2 (CANtp/PduR)
+ *
+ * @param[in] Callback 回调函数指针
+ */
+FUNC(void, CAN_CODE)
+CanIf_SetRxIndication2(
     CanIf_RxIndication Callback
 );
 

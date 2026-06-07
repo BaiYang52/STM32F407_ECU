@@ -33,10 +33,13 @@
 #include "timer_driver.h"
 #include "pwm_driver.h"
 #include "spi_flash.h"
+#include <asw/dim.h>
 
 /* BSW 接口头文件 */
 #include "canif.h"
 #include "com.h"
+#include "pdur.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -110,7 +113,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	float temperature=0.0f;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -168,15 +171,18 @@ int main(void)
   }
 
   /* ─── 原有测试模块初始化（兼容过渡） ─── */
-  /* Test_PWM_Init(); */   /* PWM 已由 MCAL Pwm_Init 启动 */
+//  Test_PWM_Init();         /* PWM 已由 MCAL Pwm_Init 启动，Test_PWM_Init 设置呼吸模式 */
   /* Test_CAN_Init(); */   /* CAN 已由 MCAL Can_Init 启动 */
-  Test_Key_Init();
-  Test_NVM_Init();
+  // Test_Key_Init();
+  // Test_NVM_Init();
   Mcal_DS18B20_Init();
 
   /* ─── BSW 层初始化 ─── */
   CanIf_Init();
   Com_Init();
+  PduR_Init();       /* PduR + CANtp 初始化 (注册 UDS 接收回调) */
+  Dcm_Init();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -188,15 +194,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//	  if (s_task10msFlag) {
-//		  App_Task_10ms();
-//	  }
-//	  if (s_task100msFlag) {
-//		  App_Task_100ms();
-//	  }
-//	  if (s_task1000msFlag) {
-//		  App_Task_1000ms();
-//	  }
+	  if (s_task1msFlag) {
+		  s_task1msFlag = 0;
+	  }
 	  if (s_task10msFlag) {
 		  /* ── MCAL 轮询 ── */
 		  Can_MainFunction_Write();           /* 发送缓冲区 → 硬件邮箱 */
@@ -205,11 +205,13 @@ int main(void)
 		  /* ── BSW 轮询 ── */
 		  CanIf_MainFunction();               /* CanIf 发送调度 */
 		  Com_MainFunction();                 /* Com 信号打包 + 周期发送 */
+		  PduR_MainFunction();                /* PduR + CANtp 状态机 (UDS收发+超时) */
 
-		  /* ── 原有测试任务 ── */
-		  Test_PWM_10ms_Task();
-		  Test_Key_10ms_Task();
-
+		  /* ── ASW 轮询 ── */
+		  Dim_MainFunction();
+		  HEATM_Run_Temperature();
+		  APP_MainFunction();
+		  Dcm_MainFunction();
 		  s_task10msFlag = 0;
 	  }
 
@@ -217,17 +219,11 @@ int main(void)
 		  /* ── MCAL BusOff 恢复 ── */
 		  Can_MainFunction_BusOff();
 
-		  /* ── 原有测试任务 ── */
-		  Test_CAN_100ms_Task();
-
 		  s_task100msFlag = 0;
 	  }
 
 	  if (s_task1000msFlag) {
-		  if (Mcal_DS18B20_ReadTemperature(&temperature) == STD_OK) {
-			  printf("temperature: %.2f ℃\r\n", temperature);
-		  }
-		  // Test_NVM_1000ms_Task();
+//		  Com_TestFunction();
 		  s_task1000msFlag = 0;
 	  }
   }

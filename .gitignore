@@ -1,3 +1,16 @@
+*.s19
+*.hex
+*.bin
+*.elf
+*.map
+
+*.d
+*.o
+*.su
+*.cyclo
+*.obj
+*.lst
+
 # Build
 build/
 dist/
@@ -7,6 +20,17 @@ dist/
 *.hex
 *.bin
 *.map
+*.s19
+
+cubeide_project/
+Debug/
+*.o
+*.a
+*.elf
+*.hex
+*.bin
+*.map
+*.s19
 
 # IDE
 .vscode/
@@ -22,6 +46,7 @@ dist/
 *~
 *.swp
 *.tmp
+*.swo
 
 # Generated code
 src/asw/app_models/

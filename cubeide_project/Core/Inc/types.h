@@ -59,7 +59,9 @@ extern "C"
      */
     typedef uint8 Std_OkType;
 
+#ifndef E_OK
 #define E_OK 0U
+#endif
 
     /* ============= Size Types ============= */
 

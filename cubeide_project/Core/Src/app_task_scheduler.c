@@ -6,10 +6,12 @@
 #include "main.h"
 
 /* 任务标志变量 (在main.c中声明) */
+uint8_t s_task1msFlag = 0;
 uint8_t s_task10msFlag = 0;
 uint8_t s_task100msFlag = 0;
 uint8_t s_task1000msFlag = 0;
 
+static uint32_t s_task1msCounter = 0;
 static uint32_t s_task10msCounter = 0;
 static uint32_t s_task100msCounter = 0;
 static uint32_t s_task1000msCounter = 0;
@@ -20,6 +22,7 @@ static uint32_t s_task1000msCounter = 0;
  */
 void App_System_Init(void)
 {
+	s_task1msCounter = 0;
     s_task10msCounter = 0;
     s_task100msCounter = 0;
     s_task1000msCounter = 0;
@@ -41,6 +44,7 @@ void HAL_SYSTICK_Callback(void)
 {
     // 这个函数会在每个HAL_IncTick()后自动调用
     // 默认1ms调用一次
+    s_task1msFlag = 1;  // 标记10ms任务可以运行
 
     s_task10msCounter++;
     if (s_task10msCounter%10==0) {
