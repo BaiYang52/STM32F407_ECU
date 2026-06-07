@@ -239,13 +239,12 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
         return;
     }
 
-    if (PduId == DCM_ID_UDS_FUNCTIONAL) {
-        Dcm_RequestAddressType = DCM_ADDRESS_FUNCTIONAL;
+    if (PduId == DCM_ADDRESS_FUNCTIONAL) {
         Dcm_SuppressPositiveResponse = TRUE;
     } else {
-        Dcm_RequestAddressType = DCM_ADDRESS_PHYSICAL;
         Dcm_SuppressPositiveResponse = FALSE;
     }
+    Dcm_RequestAddressType = PduId;
 
     if (Length < 1U) {
         return;

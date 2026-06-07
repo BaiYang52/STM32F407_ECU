@@ -20,9 +20,13 @@ extern CAN_HandleTypeDef hcan2;
 /* ==================== 寄存器地址映射 ==================== */
 
 /** CAN1 寄存器基地址 */
+#ifndef CAN1_BASE
 #define CAN1_BASE               0x40006400UL
+#endif
 /** CAN2 寄存器基地址 */
+#ifndef CAN2_BASE
 #define CAN2_BASE               0x40006800UL
+#endif
 
 /** bxCAN 主控制寄存器 (MCR) 偏移 */
 #define CAN_MCR_OFFSET          0x00U

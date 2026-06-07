@@ -10,6 +10,7 @@
 *.cyclo
 *.obj
 *.lst
+*.mxproject
 
 # Build
 build/
