@@ -125,6 +125,12 @@ typedef uint8 Dcm_NegativeResponseCodeType;
 /*******************************************************************************
  * TYPE DEFINITIONS
  *******************************************************************************/
+typedef enum
+{
+    DCM_ADDRESS_PHYSICAL    = 0U,   /**< UDS 物理寻址 : CAN ID 0x7A0->0x7A8 */
+    DCM_ADDRESS_FUNCTIONAL  = 1U,   /**< UDS 功能寻址 : CAN ID 0x7DF */
+    DCM_MAX_ADDRESS_NUMBER          /**< 最大 ID */
+} DCM_AddressType;
 
 /**
  * @brief DID Data Structure for 0xF190 (VIN)

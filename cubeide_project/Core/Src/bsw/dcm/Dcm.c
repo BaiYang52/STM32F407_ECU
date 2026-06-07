@@ -65,6 +65,7 @@ typedef enum
 static boolean Dcm_Initialized = FALSE;
 static Dcm_StateType Dcm_State = DCM_STATE_UNINIT;
 uint8 Dcm_CurrentSession = DCM_SESSION_DEFAULT;
+DCM_AddressType Dcm_RequestAddressType = DCM_SESSION_DEFAULT;
 static uint8 Dcm_LastSession = DCM_SESSION_DEFAULT;
 static boolean Dcm_SecurityLevel1Unlocked = FALSE;
 static boolean Dcm_DTCSettingEnabled = TRUE;
@@ -238,9 +239,11 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
         return;
     }
 
-    if (PduId == PDUR_ID_UDS_FUNCTIONAL) {
+    if (PduId == DCM_ID_UDS_FUNCTIONAL) {
+        Dcm_RequestAddressType = DCM_ADDRESS_FUNCTIONAL;
         Dcm_SuppressPositiveResponse = TRUE;
     } else {
+        Dcm_RequestAddressType = DCM_ADDRESS_PHYSICAL;
         Dcm_SuppressPositiveResponse = FALSE;
     }
 
@@ -671,8 +674,22 @@ static Std_ReturnType Dcm_Service_TesterPresent_0x3E(
 
     subFunction = RequestData[1];
 
+    if (subFunction == 0x80U) { /*3E 80*/
+        Dcm_SuppressPositiveResponse = TRUE;
+        if (RequestLength > 2U) { /* reject 3E 80 ** */
+            Dcm_SuppressPositiveResponse = FALSE;
+            Dcm_Global_NegativeResponseCode = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
+            return E_NOT_OK;
+        }
+    }
+
     if (subFunction != 0x00U) {
         Dcm_Global_NegativeResponseCode = DCM_E_SUBFUNCTION_NOT_SUPPORTED;
+        return E_NOT_OK;
+    }
+
+    if (RequestLength > 2U) {
+        Dcm_Global_NegativeResponseCode = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
         return E_NOT_OK;
     }
 
@@ -681,7 +698,6 @@ static Std_ReturnType Dcm_Service_TesterPresent_0x3E(
     ResponseData[0] = 0x7EU;        /* 0x3E + 0x40 */
     ResponseData[1] = subFunction;
     *ResponseLength = 2U;
-
     return E_OK;
 }
 
