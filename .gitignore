@@ -11,6 +11,7 @@
 *.obj
 *.lst
 *.mxproject
+.mxproject
 
 # Build
 build/

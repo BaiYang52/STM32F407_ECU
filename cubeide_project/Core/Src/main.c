@@ -21,12 +21,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-//#include "test_pwm.h"
-//#include "test_can.h"
-//#include "test_key.h"
-//#include "test_adc.h"
-//#include "test_nvm.h"
-
 /* MCAL 驱动接口头文件 */
 #include "can_driver.h"
 #include "gpio_driver.h"
@@ -39,7 +33,12 @@
 #include "canif.h"
 #include "com.h"
 #include "pdur.h"
+#include <bsw/dcm/Dcm.h>
 
+/* ASW 接口头文件 */
+#include <asw/heatm.h>
+//#include <asw/app.h>
+#include <ds18b20_driver.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -93,7 +92,11 @@ static void MX_USART2_UART_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_IWDG_Init(void);
 /* USER CODE BEGIN PFP */
-
+static void SchM_Init(void);
+static void SchM_Task1ms(void);
+static void SchM_Task10ms(void);
+static void SchM_Task100ms(void);
+static void SchM_Task1000ms(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -148,45 +151,7 @@ int main(void)
   MX_USART3_UART_Init();
   MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
-  /* ─── MCAL 驱动初始化 ─── */
-  Gpt_Init();                            /* SysTick 定时器 */
-  Dio_Init();                            /* GPIO 驱动 */
-
-  /* CAN 驱动初始化 (使用 CubeMX 已配置的 hcan1) */
-  static const Can_Config can1Config = {
-      .baudrate   = 500U,
-      .channel    = CAN_CHANNEL_1,
-      .autoBusOff = TRUE
-  };
-  Can_Init((void *)&can1Config);
-
-  /* PWM 驱动初始化 */
-  static const Pwm_Config pwmConfig[PWM_CHANNEL_COUNT] = {
-      {PWM_CH_LED,    0U,  PWM_OUTPUT_LOW},
-      {PWM_CH_MOTOR,  0U,  PWM_OUTPUT_LOW}
-  };
-  Pwm_Init(pwmConfig, PWM_CHANNEL_COUNT);
-
-  /* SPI Flash 初始化 */
-  if (Fls_Init() == STD_OK) {
-      printf("[MCAL] W25Q16 Flash 识别成功\n");
-  } else {
-      printf("[MCAL] W25Q16 Flash 识别失败\n");
-  }
-
-  /* ─── 原有测试模块初始化（兼容过渡） ─── */
-//  Test_PWM_Init();         /* PWM 已由 MCAL Pwm_Init 启动，Test_PWM_Init 设置呼吸模式 */
-  /* Test_CAN_Init(); */   /* CAN 已由 MCAL Can_Init 启动 */
-  // Test_Key_Init();
-  // Test_NVM_Init();
-  Mcal_DS18B20_Init();
-
-  /* ─── BSW 层初始化 ─── */
-  CanIf_Init();
-  Com_Init();
-  PduR_Init();       /* PduR + CANtp 初始化 (注册 UDS 接收回调) */
-  Dcm_Init();
-
+  SchM_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -198,38 +163,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if (s_task1msFlag) {
-		  s_task1msFlag = 0;
-	  }
-	  if (s_task10msFlag) {
-		  /* ── MCAL 轮询 ── */
-		  Can_MainFunction_Write();           /* 发送缓冲区 → 硬件邮箱 */
-		  Fls_MainFunction();                 /* Flash 操作完成检查 */
-
-		  /* ── BSW 轮询 ── */
-		  CanIf_MainFunction();               /* CanIf 发送调度 */
-		  Com_MainFunction();                 /* Com 信号打包 + 周期发送 */
-		  PduR_MainFunction();                /* PduR + CANtp 状态机 (UDS收发+超时) */
-
-		  /* ── ASW 轮询 ── */
-		  Dim_MainFunction();
-		  HEATM_Run_Temperature();
-		  APP_MainFunction();
-		  Dcm_MainFunction();
-		  s_task10msFlag = 0;
-	  }
-
-	  if (s_task100msFlag) {
-		  /* ── MCAL BusOff 恢复 ── */
-		  Can_MainFunction_BusOff();
-
-		  s_task100msFlag = 0;
-	  }
-
-	  if (s_task1000msFlag) {
-//		  Com_TestFunction();
-		  s_task1000msFlag = 0;
-	  }
+	  if (s_task1msFlag) { SchM_Task1ms(); }
+	  if (s_task10msFlag) { SchM_Task10ms(); }
+	  if (s_task100msFlag) { SchM_Task100ms(); }
+	  if (s_task1000msFlag) { SchM_Task1000ms(); }
+	  HAL_IWDG_Refresh(&hiwdg);
   }
   /* USER CODE END 3 */
 }
@@ -739,7 +677,84 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void SchM_Init(void)
+{
+	/* ─── MCAL Init ─── */
+  Gpt_Init();                            /* SysTick 定时器 */
+  Dio_Init();                            /* GPIO 驱动 */
 
+  /* CAN hcan1 Init */
+  static const Can_Config can1Config = {
+      .baudrate   = 500U,
+      .channel    = CAN_CHANNEL_1,
+      .autoBusOff = TRUE
+  };
+  Can_Init((void *)&can1Config);
+
+  /* PWM Init */
+  static const Pwm_Config pwmConfig[PWM_CHANNEL_COUNT] = {
+      {PWM_CH_LED,    0U,  PWM_OUTPUT_LOW},
+      {PWM_CH_MOTOR,  0U,  PWM_OUTPUT_LOW}
+  };
+  Pwm_Init(pwmConfig, PWM_CHANNEL_COUNT);
+
+  /* SPI Flash Init */
+  if (Fls_Init() == STD_OK) {
+      printf("[MCAL] W25Q16 Flash 识别成功\n");
+  } else {
+      printf("[MCAL] W25Q16 Flash 识别失败\n");
+  }
+
+  Mcal_DS18B20_Init();
+
+  /* ─── BSW Init ─── */
+  CanIf_Init();
+  Com_Init();
+  PduR_Init();       /* PduR + CANtp Init (注册 UDS 接收回调) */
+  Dcm_Init();
+}
+
+void SchM_Task1ms(void)
+{
+	s_task1msFlag = 0;
+}
+
+void SchM_Task10ms(void)
+{
+	s_task10msFlag = 0;
+
+	/* ── MCAL ── */
+	Can_MainFunction_Write();           /* 发送缓冲区 → 硬件邮箱 */
+	Fls_MainFunction();                 /* Flash 操作完成检查 */
+
+	/* ── BSW ── */
+	CanIf_MainFunction();               /* CanIf 发送调度 */
+	Com_MainFunction();                 /* Com 信号打包 + 周期发送 */
+	PduR_MainFunction();                /* PduR + CANtp 状态机 (UDS收发+超时) */
+
+	/* ── ASW ── */
+	Dim_MainFunction();
+	HEATM_Run_Temperature();
+	APP_MainFunction();
+	Dcm_MainFunction();
+}
+
+void SchM_Task100ms(void)
+{
+	s_task100msFlag = 0;
+
+    /* ── MCAL BusOff ── */
+	Can_MainFunction_BusOff();
+
+
+}
+
+void SchM_Task1000ms(void)
+{
+  s_task1000msFlag = 0;
+
+  // Com_TestFunction();
+}
 /* USER CODE END 4 */
 
 /**
