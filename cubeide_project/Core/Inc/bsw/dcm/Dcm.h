@@ -275,6 +275,11 @@ FUNC(void, DCM_CODE) Dcm_SetCommState(uint8 CommState);
  */
 FUNC(void, DCM_CODE) Dcm_TesterPresentReset(void);
 
+/**
+ * @brief Check subfunction to decide if Suppress Positive Response
+* @param[in] subfunction  Subfunction
+ */
+void Dcm_CheckIfSuppressPositiveResponse(uint8 subfunction);
 /*******************************************************************************
  * UDS SERVICE FUNCTION DECLARATIONS
  *******************************************************************************/

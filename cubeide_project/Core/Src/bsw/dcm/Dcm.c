@@ -541,7 +541,7 @@ static void Dcm_PduRTxCallback(PduR_PduIdType PduId, Std_ReturnType Result)
     (void)Result;
 }
 
-static void Dcm_CheckIfSuppressPositiveResponse(uint8 subfunction)
+void Dcm_CheckIfSuppressPositiveResponse(uint8 subfunction)
 {
     if ((subfunction & 0x80U) != 0U) {
         Dcm_SuppressPositiveResponse = TRUE;

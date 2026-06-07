@@ -116,20 +116,10 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ControlDTCSetting_0x85(
     }
 
     /* ========================================================================
-     * 消息长度校验: SID(1) + SubFunction(1) = 2 最小
-     * 可选: DTCSettingType(1) + DTCSettingControlOptionRecord(1-N)
-     * ======================================================================== */
-    if (RequestLength < 2U) {
-        /* NRC 0x13: Incorrect Message Length or Format */
-        Dcm_Global_NegativeResponseCode = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
-        return E_NOT_OK;
-    }
-
-    /* ========================================================================
      * 提取子功能
      * ======================================================================== */
-    subFunction = RequestData[1];
-
+    // subFunction = RequestData[1];
+    subFunction = RequestData[1] & 0x7FU;
     /* ========================================================================
      * 会话校验
      *
@@ -140,9 +130,21 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ControlDTCSetting_0x85(
      * ======================================================================== */
     currentSession = Dcm_GetCurrentSession();
 
-    if (currentSession == DCM_SESSION_PROGRAMMING) {
-        /* Programming 会话不支持 DTC 设置控制 */
-        Dcm_Global_NegativeResponseCode = DCM_E_CONDITIONS_NOT_CORRECT;
+    if (currentSession == DCM_SESSION_PROGRAMMING) { /* Service not support in fbl */
+        Dcm_Global_NegativeResponseCode = DCM_E_SERVICE_NOT_SUPPORTED;
+        return E_NOT_OK;
+    }else if (currentSession == DCM_SESSION_DEFAULT) { /* Service not support in Default session */
+        Dcm_Global_NegativeResponseCode = DCM_E_SERVICE_NOT_SUPPORT_IN_CURRENT_SESSION;
+        return E_NOT_OK;
+    }else { /*do nothing */ }
+
+    /* ========================================================================
+     * 消息长度校验: SID(1) + SubFunction(1) = 2 最小
+     * 可选: DTCSettingType(1) + DTCSettingControlOptionRecord(1-N)
+     * ======================================================================== */
+    if (RequestLength < 2U) {
+        /* NRC 0x13: Incorrect Message Length or Format */
+        Dcm_Global_NegativeResponseCode = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
         return E_NOT_OK;
     }
 
@@ -171,15 +173,13 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ControlDTCSetting_0x85(
         return E_NOT_OK;
     }
 
-    /* ========================================================================
-     * 校验条件 (根据需求文档 NRC 0x22 检测条件):
-     *   1) Voltage < 9V
-     *   2) Voltage > 16V
-     *   3) VehicleSpeed > 5km/h
-     *
-     * 此处简化实现: 暂不调用 ADC/车速检测, 由应用层决定
-     * ======================================================================== */
+    if (RequestLength > 2U) {
+        /* NRC 0x13: Incorrect Message Length or Format */
+        Dcm_Global_NegativeResponseCode = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
+        return E_NOT_OK;
+    }
 
+    Dcm_CheckIfSuppressPositiveResponse(RequestData[1]);
     /* ========================================================================
      * 构建肯定响应
      *
