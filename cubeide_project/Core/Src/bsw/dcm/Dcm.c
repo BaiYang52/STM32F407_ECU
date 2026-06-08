@@ -154,6 +154,8 @@ FUNC(void, DCM_CODE) Dcm_Init(void)
     Dcm_SuppressPositiveResponse = FALSE;
     Dcm_Global_NegativeResponseCode = 0U;
 
+    Dcm_SecurityAccessSequence == FALSE;
+
     PduR_SetRxIndication(Dcm_PduRRxCallback);
     PduR_SetTxConfirmation(Dcm_PduRTxCallback);
 

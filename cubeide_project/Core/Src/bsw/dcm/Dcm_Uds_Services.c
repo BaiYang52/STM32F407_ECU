@@ -461,10 +461,23 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestSeed_Level1(
         return E_NOT_OK;
     }
 
+    if((GetSystemTick()-Dcm_SecurityLockTime < ATTEMPT_COUNTER_LIMIT_TIME) &&
+        (Dcm_SecurityAttemptCounter >= ATTEMPT_COUNTER_LIMIT))
+    {   /* <10s Not allowed attempt */
+        *ErrorCode_Ptr = DCM_E_REQUIRED_TIME_DELAY_NOT_EXPIRED;
+        return E_NOT_OK;
+    } else if ((GetSystemTick()-Dcm_SecurityLockTime >= ATTEMPT_COUNTER_LIMIT_TIME) && 
+               (Dcm_SecurityAttemptCounter >= ATTEMPT_COUNTER_LIMIT))
+    {   /* Allow one more attempt after lock time expires */
+        Dcm_SecurityAttemptCounter = ATTEMPT_COUNTER_LIMIT-1U; 
+    } else { /* do nothing */ }
+
     if(Dcm_SecurityAccessSequence == FALSE){
         /* Generate random seed */
         Dcm_GenerateSecuritySeed(Dcm_SecuritySeed_Level1, SECURITY_SEED_LENGTH);
-    } else { /*If already request seed */ } 
+    } else { 
+        Dcm_SecurityAttemptCounter++; /* Increment attempt counter if repeat request seed */
+    } 
     
     /* Copy seed to response */
     if(Dcm_GetSecurityLevel()==0U)
@@ -514,27 +527,18 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_SendKey_Level1(
         return E_NOT_OK;
     }
 
-    if((GetSystemTick()-Dcm_SecurityLockTime < ATTEMPT_COUNTER_LIMIT_TIME) &&
-        (Dcm_SecurityAttemptCounter >= ATTEMPT_COUNTER_LIMIT))
-    {   /* <10s Not allowed attempt */
-        *ErrorCode_Ptr = DCM_E_REQUIRED_TIME_DELAY_NOT_EXPIRED;
-        return E_NOT_OK;
-    } else if ((GetSystemTick()-Dcm_SecurityLockTime >= ATTEMPT_COUNTER_LIMIT_TIME) && 
-               (Dcm_SecurityAttemptCounter >= ATTEMPT_COUNTER_LIMIT))
-    {   /* Allow one more attempt after lock time expires */
-        Dcm_SecurityAttemptCounter = ATTEMPT_COUNTER_LIMIT-1U; 
-    } else { /* do nothing */ }
-
     /* Validate key */
     if (calculatedKey != receivedKey) {
         Dcm_SecurityAttemptCounter++;
         if (Dcm_SecurityAttemptCounter >= ATTEMPT_COUNTER_LIMIT) {
             *ErrorCode_Ptr = DCM_E_EXCEEDED_NUMBER_OF_ATTEMPTS;
             Dcm_SecurityLockTime = GetSystemTick();
+            Dcm_SecurityAccessSequence = FALSE;
             return E_NOT_OK;
         }
         
         *ErrorCode_Ptr = DCM_E_INVALID_KEY;
+        Dcm_SecurityAccessSequence = FALSE;
         return E_NOT_OK;
     }
     
@@ -704,13 +708,13 @@ static FUNC(uint32, DCM_CODE) Dcm_CalculateSecurityKey(
     /* In production, use a proper cryptographic algorithm */
     uint32 key = 0U;
     
-    for (uint16 i = 0U; i < SeedLength; i++) {
-        key ^= (uint32)(SeedBuffer_Ptr[i] << (8U * (i % 4U)));
-    }
+    // for (uint16 i = 0U; i < SeedLength; i++) {
+    //     key ^= (uint32)(SeedBuffer_Ptr[i] << (8U * (i % 4U)));
+    // }
     
-    /* Add constant for obfuscation */
-    key = key ^ 0x12345678U;
-    
+    // /* Add constant for obfuscation */
+    // key = key ^ 0x12345678U;
+    key = (uint32)SeedBuffer_Ptr[0] + (uint32)(SeedBuffer_Ptr[1] << 8U) + (uint32)(SeedBuffer_Ptr[2] << 16U) + (uint32)(SeedBuffer_Ptr[3] << 24U);
     return key;
 }
 
