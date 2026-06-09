@@ -169,3 +169,10 @@ uint32 Rte_Hal_GetTick(void)
 {
     return HAL_GetTick();
 }
+
+/* ============= MCAL System Control Interface ============= */
+
+void Rte_Hal_SystemReset(void)
+{
+    NVIC_SystemReset();
+}

@@ -107,7 +107,7 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ECUReset_0x11(
     /* ========================================================================
      * 提取子功能
      * ======================================================================== */
-    subFunction = RequestData[1];
+    subFunction = RequestData[1]&0x7FU; 
 
     /* ========================================================================
      * 校验子功能支持
@@ -127,6 +127,12 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ECUReset_0x11(
     default:
         /* NRC 0x12: SubFunction Not Supported */
         Dcm_Global_NegativeResponseCode = DCM_E_SUBFUNCTION_NOT_SUPPORTED;
+        return E_NOT_OK;
+    }
+
+    if (RequestLength > 2U) {
+        /* NRC 0x13: Incorrect Message Length or Format */
+        Dcm_Global_NegativeResponseCode = DCM_E_INCORRECT_MSG_LENGTH_OR_FORMAT;
         return E_NOT_OK;
     }
 
@@ -151,7 +157,12 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ECUReset_0x11(
      *       return E_NOT_OK;
      *   }
      * ======================================================================== */
+    if (GetVehicleSpeed() > 5U) {
+        Dcm_Global_NegativeResponseCode = DCM_E_CONDITIONS_NOT_CORRECT;
+        return E_NOT_OK;
+    }
 
+    Dcm_CheckIfSuppressPositiveResponse(RequestData[1]);
     /* ========================================================================
      * 构建肯定响应
      *
@@ -160,6 +171,7 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ECUReset_0x11(
      * 注意: 复位响应需要在复位执行前发送出去,
      * 因此先填充响应缓冲区, 由 Dcm 核心在发送后执行复位
      * ======================================================================== */
+    Dcm_ECUResetPending = TRUE;
     ResponseData[0] = ECU_RESET_POSITIVE_RESPONSE_SID;   /* 0x51 */
     ResponseData[1] = subFunction;                        /* 0x01 */
     *ResponseLength = 2U;

@@ -204,6 +204,8 @@ extern boolean Dcm_SuppressPositiveResponse;
 extern boolean Dcm_SuppressNegativeResponse; 
 
 extern boolean Dcm_SecurityAccessSequence;
+
+extern boolean Dcm_ECUResetPending;
 /*******************************************************************************
  * DCM CORE FUNCTION DECLARATIONS
  *******************************************************************************/

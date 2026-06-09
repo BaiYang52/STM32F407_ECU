@@ -31,7 +31,7 @@ void APP_MainFunction(void);
 void APP_Run_KeyState(void);
 APP_KeyStateType APP_Get_Key1DebounceState(void);
 APP_KeyStateType APP_Get_Key0DebounceState(void);
-#define KEY_STUCK_DEBOUNCE 30000U
+#define KEY_STUCK_DEBOUNCE  1000U   /* 3000 * 10ms = 30s */
 #define KEY_UNPRESSED_STATE 0x07U /* 0b 0000 0111 30ms debounce time */
 /* ==================== Runnable 实现 ==================== */
 

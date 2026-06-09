@@ -157,6 +157,16 @@ extern "C"
      */
     uint32 Rte_Hal_GetTick(void);
 
+    /* ============= MCAL System Control Interface ============= */
+
+    /**
+     * @brief 触发MCU系统复位 (RTE → MCAL NVIC_SystemReset)
+     * 
+     * 封装CMSIS NVIC_SystemReset(), 执行后MCU立即复位。
+     * 该函数不会返回。
+     */
+    void Rte_Hal_SystemReset(void);
+
 #ifdef __cplusplus
 }
 #endif

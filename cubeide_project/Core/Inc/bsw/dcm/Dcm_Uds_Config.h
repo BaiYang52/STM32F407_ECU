@@ -237,6 +237,7 @@ extern const Dcm_RoutineConfigType Dcm_RoutineConfigTable[DCM_NUM_SUPPORTED_ROUT
 
 #define Rng_GenerateRandomNumber Rte_Hal_Rng_GenerateRandomNumber
 #define GetSystemTick Rte_Hal_GetTick
+#define GetVehicleSpeed Rte_Read_VehicleCtrl_Port_Veh_Speed
 /*******************************************************************************
  * INTEGRATION CHECKLIST
  *******************************************************************************/
