@@ -1,5 +1,5 @@
 /**
- * @file Dcm.c
+* @file Dcm.c
  * @brief AUTOSAR Diagnostic Communication Manager (DCM) Core Module
  * @version 1.0.0
  *
@@ -78,7 +78,6 @@ static boolean Dcm_NeedResponse = FALSE;
 static uint8 Dcm_CurrentRequestSID = 0U;
 static uint8 Dcm_CurrentRequestSubFunction = 0U;
 
-
 /*******************************************************************************
  * GLOBAL VARIABLES
  *******************************************************************************/
@@ -88,6 +87,7 @@ uint8 Dcm_CurrentSession = DCM_SESSION_DEFAULT;
 boolean Dcm_SuppressPositiveResponse = FALSE;  
 boolean Dcm_SuppressNegativeResponse = FALSE;
 boolean Dcm_ECUResetPending = FALSE;
+uint8 Dcm_ECUResetDelayCounter = 0U;
 boolean Dcm_SecurityLevel1Unlocked = FALSE;
 boolean Dcm_DTCSettingEnabled = TRUE;
 
@@ -154,6 +154,7 @@ FUNC(void, DCM_CODE) Dcm_Init(void)
 
     Dcm_SecurityAccessSequence == FALSE;
     Dcm_ECUResetPending = FALSE;
+    Dcm_ECUResetDelayCounter = 0U;
 
     PduR_SetRxIndication(Dcm_PduRRxCallback);
     PduR_SetTxConfirmation(Dcm_PduRTxCallback);
@@ -173,6 +174,17 @@ FUNC(void, DCM_CODE) Dcm_MainFunction(void)
         } else {
 
             Dcm_SwitchSession(DCM_SESSION_DEFAULT);
+        }
+    }
+
+    /* ECUReset HardReset: 延迟复位，给 CAN 帧发送留出时间 */
+    if (Dcm_ECUResetPending) {
+        Dcm_ECUResetDelayCounter++;
+        if (Dcm_ECUResetDelayCounter >= 10U) {
+            Dcm_ECUResetPending = FALSE;
+            Dcm_ECUResetDelayCounter = 0U;
+            Rte_Hal_SystemReset();
+            while (1) {}
         }
     }
 }
@@ -277,7 +289,6 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
     Dcm_ResponseLength     = 0U;
     Dcm_Global_NegativeResponseCode = 0U;  /* 复位全局 NRC */
     Dcm_SuppressPositiveResponse = FALSE;
-    Dcm_ECUResetPending = FALSE;
 
     // if ((sid & 0x80U) != 0U) {
     //     Dcm_SuppressPositiveResponse = TRUE;
@@ -535,27 +546,6 @@ static void Dcm_PduRRxCallback(PduR_PduIdType PduId,
     }
 
     PduR_Transmit(PDUR_ID_UDS_PHYSICAL, Dcm_ResponseBuffer, Dcm_ResponseLength);
-
-    /* ========================================================================
-     * ECUReset HardReset: 响应发送后执行硬件复位
-     * ========================================================================
-     * ISO 14229-1: 在肯定响应发送完成后执行复位。
-     * 此处通过短暂延时确保 CAN 帧发送完毕，然后通过 RTE 触发 NVIC_SystemReset。
-     */
-    if (Dcm_ECUResetPending) {
-        Dcm_ECUResetPending = FALSE;
-
-        /* 等待 CAN 帧发送完成 (P2Server Max = 50ms 内) */
-        for (volatile uint32 delay = 0U; delay < 50000U; delay++) {
-            __asm volatile ("nop");
-        }
-
-        /* 触发 MCU 硬件复位 */
-        Rte_Hal_SystemReset();
-
-        /* Rte_Hal_SystemReset 不会返回 */
-        while (1) {}
-    }
 }
 
 static void Dcm_PduRTxCallback(PduR_PduIdType PduId, Std_ReturnType Result)
