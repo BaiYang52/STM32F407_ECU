@@ -53,23 +53,26 @@ extern "C" {
 #define UDS_SID_TESTER_PRESENT                      0x3EU
 #define UDS_SID_CONTROL_DTC_SETTING                 0x85U
 
-/* Data Identifiers (DIDs) */
-#define DID_BOOT_SOFTWARE_ID                        0xF180U
-#define DID_ECU_NAME                                0xF183U
-#define DID_ACTIVE_DIAGNOSTIC_SESSION               0xF186U
-#define DID_SYSTEM_SUPPLIER_ID                      0xF18AU
-#define DID_ECU_MANUFACTURING_DATE                  0xF18BU
-#define DID_ECU_SERIAL_NUMBER                       0xF18CU
-#define DID_VIN                                     0xF190U
-#define DID_SYSTEM_SUPPLIER_HW_VERSION              0xF193U
-#define DID_SYSTEM_SUPPLIER_SW_VERSION              0xF195U
-#define DID_FINGERPRINT                             0xF198U
-#define DID_PROGRAMMING_DATE                        0xF199U
-#define DID_TEMPERATURE_THRESHOLD                   0xF200U
-#define DID_AUTHOR_NAME                             0xF201U
-#define DID_PUBLIC_KEY                              0xF300U
-#define DID_RESET_COUNTER                           0xF500U
-#define DID_FLASH_COUNTER                           0xF501U
+/* Data Identifiers (DIDs) - Complete 16 DID configuration */
+#define DID_BOOT_SOFTWARE_ID                        0xF180U  /* DID1: 16 bytes ASCII, ReadOnly */
+#define DID_ECU_NAME                                0xF183U  /* DID2: 16 bytes ASCII, ReadOnly */
+#define DID_ACTIVE_DIAGNOSTIC_SESSION               0xF186U  /* DID3: 1 byte hex, ReadOnly */
+#define DID_SYSTEM_SUPPLIER_ID                      0xF18AU  /* DID4: 2 bytes ASCII, ReadOnly */
+#define DID_ECU_MANUFACTURING_DATE                  0xF18BU  /* DID5: 4 bytes BCD, ReadOnly */
+#define DID_ECU_SERIAL_NUMBER                       0xF18CU  /* DID6: 32 bytes ASCII, ReadWrite(App Ext L1) */
+#define DID_VIN                                     0xF190U  /* DID7: 17 bytes ASCII, ReadWrite */
+#define DID_SYSTEM_SUPPLIER_HW_VERSION              0xF193U  /* DID8: 8 bytes ASCII, ReadOnly */
+#define DID_SYSTEM_SUPPLIER_SW_VERSION              0xF195U  /* DID9: 8 bytes ASCII, ReadOnly */
+#define DID_FINGERPRINT                             0xF198U  /* DID10: 32 bytes ASCII, ReadOnly(App, L2 in FBL) */
+#define DID_PROGRAMMING_DATE                        0xF199U  /* DID11: 4 bytes BCD, ReadOnly(App, L2 in FBL) */
+#define DID_TEMPERATURE_THRESHOLD                   0xF200U  /* DID12: 2 bytes unsigned, ReadWrite */
+#define DID_AUTHOR_NAME                             0xF201U  /* DID13: 16 bytes ASCII, ReadWrite */
+#define DID_PUBLIC_KEY                              0xF300U  /* DID14: 64 bytes hex, ReadOnly(App, L2 in FBL) */
+#define DID_RESET_COUNTER                           0xF500U  /* DID15: 1 byte unsigned, ReadOnly */
+#define DID_FLASH_COUNTER                           0xF501U  /* DID16: 2 bytes unsigned, ReadOnly */
+#define DID_BOOT_FLAG                               0xF502U
+#define DID_APP_VALID                               0xF503U
+#define DID_SECURITY_FAIL_COUNTER                   0xF504U
 
 /* Routine IDs (RIDs) */
 #define RID_ERASE_MEMORY                            0x0201U
@@ -133,35 +136,112 @@ typedef enum
 } DCM_AddressType;
 
 /**
- * @brief DID Data Structure for 0xF190 (VIN)
+ * @brief DID Data Structure for 0xF180 (Boot Software ID) - DID1
  */
 typedef struct {
-    uint8 Vin[17];              /* VIN: 17 bytes ASCII */
-} Dcm_Did_F190_VinType;
+    uint8 BootSwId[16];         /* Boot SW ID: 16 bytes ASCII */
+} Dcm_Did_F180_BootSwIdType;
 
 /**
- * @brief DID Data Structure for 0xF18C (ECU Serial Number)
- */
-typedef struct {
-    uint8 SerialNumber[32];     /* Serial Number: 32 bytes ASCII */
-} Dcm_Did_F18C_SerialType;
-
-/**
- * @brief DID Data Structure for 0xF183 (ECU Name)
+ * @brief DID Data Structure for 0xF183 (ECU Name) - DID2
  */
 typedef struct {
     uint8 EcuName[16];          /* ECU Name: 16 bytes ASCII */
 } Dcm_Did_F183_EcuNameType;
 
 /**
- * @brief DID Data Structure for 0xF195 (SW Version)
+ * @brief DID Data Structure for 0xF186 (Active Diagnostic Session) - DID3
+ */
+typedef struct {
+    uint8 Session;              /* Current session: 1 byte hex */
+} Dcm_Did_F186_SessionType;
+
+/**
+ * @brief DID Data Structure for 0xF18A (System Supplier ID) - DID4 (2 bytes)
+ */
+typedef struct {
+    uint8 SupplierId[2];        /* Supplier ID: 2 bytes ASCII ("ST") */
+} Dcm_Did_F18A_SupplierIdType;
+
+/**
+ * @brief DID Data Structure for 0xF18B (ECU Manufacturing Date) - DID5
+ */
+typedef struct {
+    uint8 MfgDate[4];           /* Manufacturing Date: 4 bytes BCD */
+} Dcm_Did_F18B_MfgDateType;
+
+/**
+ * @brief DID Data Structure for 0xF18C (ECU Serial Number) - DID6
+ */
+typedef struct {
+    uint8 SerialNumber[32];     /* Serial Number: 32 bytes ASCII */
+} Dcm_Did_F18C_SerialType;
+
+/**
+ * @brief DID Data Structure for 0xF190 (VIN) - DID7
+ */
+typedef struct {
+    uint8 Vin[17];              /* VIN: 17 bytes ASCII */
+} Dcm_Did_F190_VinType;
+
+/**
+ * @brief DID Data Structure for 0xF193 (System Supplier HW Version) - DID8
+ */
+typedef struct {
+    uint8 HwVersion[8];         /* HW Version: 8 bytes ASCII */
+} Dcm_Did_F193_HwVersionType;
+
+/**
+ * @brief DID Data Structure for 0xF195 (System Supplier SW Version) - DID9
  */
 typedef struct {
     uint8 SwVersion[8];         /* SW Version: 8 bytes ASCII */
 } Dcm_Did_F195_SwVersionType;
 
 /**
- * @brief DID Data Structure for 0xF501 (Flash Counter)
+ * @brief DID Data Structure for 0xF198 (Fingerprint) - DID10
+ */
+typedef struct {
+    uint8 Fingerprint[32];      /* Fingerprint: 32 bytes ASCII */
+} Dcm_Did_F198_FingerprintType;
+
+/**
+ * @brief DID Data Structure for 0xF199 (Programming Date) - DID11
+ */
+typedef struct {
+    uint8 ProgDate[4];          /* Programming Date: 4 bytes BCD */
+} Dcm_Did_F199_ProgDateType;
+
+/**
+ * @brief DID Data Structure for 0xF200 (Temperature Threshold) - DID12
+ */
+typedef struct {
+    uint16 TempThreshold;       /* Temperature Threshold: 2 bytes unsigned */
+} Dcm_Did_F200_TempThresholdType;
+
+/**
+ * @brief DID Data Structure for 0xF201 (Author Name) - DID13
+ */
+typedef struct {
+    uint8 AuthorName[16];       /* Author Name: 16 bytes ASCII */
+} Dcm_Did_F201_AuthorNameType;
+
+/**
+ * @brief DID Data Structure for 0xF300 (Public Key) - DID14
+ */
+typedef struct {
+    uint8 PublicKey[64];        /* Public Key: 64 bytes hex */
+} Dcm_Did_F300_PublicKeyType;
+
+/**
+ * @brief DID Data Structure for 0xF500 (Reset Counter) - DID15
+ */
+typedef struct {
+    uint8 ResetCounter;         /* Reset Counter: 1 byte unsigned */
+} Dcm_Did_F500_ResetCounterType;
+
+/**
+ * @brief DID Data Structure for 0xF501 (Flash Counter) - DID16
  */
 typedef struct {
     uint16 FlashCounter;        /* Flash Counter: 2 bytes unsigned */
@@ -297,13 +377,8 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ReadDataByIdentifier_0x22(
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
-FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF190_Vin(
-    CONSTP2VAR(Dcm_Did_F190_VinType, AUTOMATIC, DCM_APPL_DATA) VinData_Ptr,
-    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
-);
-
-FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF18C_Serial(
-    CONSTP2VAR(Dcm_Did_F18C_SerialType, AUTOMATIC, DCM_APPL_DATA) SerialData_Ptr,
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF180_BootSwId(
+    CONSTP2VAR(Dcm_Did_F180_BootSwIdType, AUTOMATIC, DCM_APPL_DATA) BootSwIdData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
@@ -312,8 +387,68 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF183_EcuName(
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF186_Session(
+    CONSTP2VAR(Dcm_Did_F186_SessionType, AUTOMATIC, DCM_APPL_DATA) SessionData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF18A_SupplierId(
+    CONSTP2VAR(Dcm_Did_F18A_SupplierIdType, AUTOMATIC, DCM_APPL_DATA) SupplierIdData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF18B_MfgDate(
+    CONSTP2VAR(Dcm_Did_F18B_MfgDateType, AUTOMATIC, DCM_APPL_DATA) MfgDateData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF18C_Serial(
+    CONSTP2VAR(Dcm_Did_F18C_SerialType, AUTOMATIC, DCM_APPL_DATA) SerialData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF190_Vin(
+    CONSTP2VAR(Dcm_Did_F190_VinType, AUTOMATIC, DCM_APPL_DATA) VinData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF193_HwVersion(
+    CONSTP2VAR(Dcm_Did_F193_HwVersionType, AUTOMATIC, DCM_APPL_DATA) HwVersionData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF195_SwVersion(
     CONSTP2VAR(Dcm_Did_F195_SwVersionType, AUTOMATIC, DCM_APPL_DATA) SwVersionData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF198_Fingerprint(
+    CONSTP2VAR(Dcm_Did_F198_FingerprintType, AUTOMATIC, DCM_APPL_DATA) FingerprintData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF199_ProgDate(
+    CONSTP2VAR(Dcm_Did_F199_ProgDateType, AUTOMATIC, DCM_APPL_DATA) ProgDateData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF200_TempThreshold(
+    CONSTP2VAR(Dcm_Did_F200_TempThresholdType, AUTOMATIC, DCM_APPL_DATA) TempThresholdData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF201_AuthorName(
+    CONSTP2VAR(Dcm_Did_F201_AuthorNameType, AUTOMATIC, DCM_APPL_DATA) AuthorNameData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF300_PublicKey(
+    CONSTP2VAR(Dcm_Did_F300_PublicKeyType, AUTOMATIC, DCM_APPL_DATA) PublicKeyData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF500_ResetCounter(
+    CONSTP2VAR(Dcm_Did_F500_ResetCounterType, AUTOMATIC, DCM_APPL_DATA) ResetCounterData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 
@@ -333,6 +468,31 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_WriteDataByIdentifier_0x2E(
 
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF190_Vin(
     CONSTP2CONST(Dcm_Did_F190_VinType, AUTOMATIC, DCM_APPL_DATA) VinData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF198_Fingerprint(
+    CONSTP2CONST(Dcm_Did_F198_FingerprintType, AUTOMATIC, DCM_APPL_DATA) FingerprintData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF199_ProgDate(
+    CONSTP2CONST(Dcm_Did_F199_ProgDateType, AUTOMATIC, DCM_APPL_DATA) ProgDateData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF200_TempThreshold(
+    CONSTP2CONST(Dcm_Did_F200_TempThresholdType, AUTOMATIC, DCM_APPL_DATA) TempThresholdData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF201_AuthorName(
+    CONSTP2CONST(Dcm_Did_F201_AuthorNameType, AUTOMATIC, DCM_APPL_DATA) AuthorNameData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+);
+
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF300_PublicKey(
+    CONSTP2CONST(Dcm_Did_F300_PublicKeyType, AUTOMATIC, DCM_APPL_DATA) PublicKeyData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 );
 

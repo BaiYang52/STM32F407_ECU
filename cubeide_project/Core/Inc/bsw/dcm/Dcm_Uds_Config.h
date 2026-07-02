@@ -63,20 +63,170 @@ extern "C" {
  */
 
 /* Number of supported DIDs */
-#define DCM_NUM_SUPPORTED_DIDS                  13U
+#define DCM_NUM_SUPPORTED_DIDS                  16U
 
 /* DID Buffer Sizes */
 #define DCM_DID_MAX_READ_LENGTH                 256U
 #define DCM_DID_MAX_WRITE_LENGTH                256U
 #define DCM_DID_CACHE_ENABLED                   1U      /* Enable DID caching */
 
-/* DID Access Rights Configuration */
-#define DCM_DID_F190_READABLE                   1U
-#define DCM_DID_F190_WRITABLE                   1U      /* Requires Security Level 1 */
+/* DID Access Rights & Security Configuration */
+/* F180: Boot SW ID - ReadOnly all sessions, writable only by supplier */
+#define DCM_DID_F180_READABLE                   1U
+#define DCM_DID_F180_WRITABLE                   0U
+#define DCM_DID_F180_SECURITY_LEVEL             0U
+#define DCM_DID_F180_SESSION_APP_DEF            1U
+#define DCM_DID_F180_SESSION_APP_EXT            1U
+#define DCM_DID_F180_SESSION_BOOT_DEF           1U
+#define DCM_DID_F180_SESSION_BOOT_PROG          1U
+#define DCM_DID_F180_SESSION_BOOT_EXT           1U
+
+/* F183: ECU Name - ReadOnly, App only */
 #define DCM_DID_F183_READABLE                   1U
-#define DCM_DID_F183_WRITABLE                   0U      /* Read-only */
+#define DCM_DID_F183_WRITABLE                   0U
+#define DCM_DID_F183_SECURITY_LEVEL             0U
+#define DCM_DID_F183_SESSION_APP_DEF            1U
+#define DCM_DID_F183_SESSION_APP_EXT            1U
+#define DCM_DID_F183_SESSION_BOOT_DEF           0U
+#define DCM_DID_F183_SESSION_BOOT_PROG          0U
+#define DCM_DID_F183_SESSION_BOOT_EXT           0U
+
+/* F186: Active Diag Session - ReadOnly, App only */
+#define DCM_DID_F186_READABLE                   1U
+#define DCM_DID_F186_WRITABLE                   0U
+#define DCM_DID_F186_SECURITY_LEVEL             0U
+#define DCM_DID_F186_SESSION_APP_DEF            1U
+#define DCM_DID_F186_SESSION_APP_EXT            1U
+#define DCM_DID_F186_SESSION_BOOT_DEF           0U
+#define DCM_DID_F186_SESSION_BOOT_PROG          0U
+#define DCM_DID_F186_SESSION_BOOT_EXT           0U
+
+/* F18A: Supplier ID - ReadOnly, all sessions */
+#define DCM_DID_F18A_READABLE                   1U
+#define DCM_DID_F18A_WRITABLE                   0U
+#define DCM_DID_F18A_SECURITY_LEVEL             0U
+#define DCM_DID_F18A_SESSION_APP_DEF            1U
+#define DCM_DID_F18A_SESSION_APP_EXT            1U
+#define DCM_DID_F18A_SESSION_BOOT_DEF           1U
+#define DCM_DID_F18A_SESSION_BOOT_PROG          1U
+#define DCM_DID_F18A_SESSION_BOOT_EXT           1U
+
+/* F18B: Mfg Date - ReadOnly, App only */
+#define DCM_DID_F18B_READABLE                   1U
+#define DCM_DID_F18B_WRITABLE                   0U
+#define DCM_DID_F18B_SECURITY_LEVEL             0U
+#define DCM_DID_F18B_SESSION_APP_DEF            1U
+#define DCM_DID_F18B_SESSION_APP_EXT            1U
+#define DCM_DID_F18B_SESSION_BOOT_DEF           0U
+#define DCM_DID_F18B_SESSION_BOOT_PROG          0U
+#define DCM_DID_F18B_SESSION_BOOT_EXT           0U
+
+/* F18C: Serial Number - Read App only, Write App Ext L1 */
+#define DCM_DID_F18C_READABLE                   1U
+#define DCM_DID_F18C_WRITABLE                   1U
+#define DCM_DID_F18C_WRITE_SECURITY_LEVEL       1U
+#define DCM_DID_F18C_SESSION_APP_DEF            1U
+#define DCM_DID_F18C_SESSION_APP_EXT            1U
+#define DCM_DID_F18C_SESSION_BOOT_DEF           0U
+#define DCM_DID_F18C_SESSION_BOOT_PROG          0U
+#define DCM_DID_F18C_SESSION_BOOT_EXT           0U
+
+/* F190: VIN - Read App only, Write App Ext L1 */
+#define DCM_DID_F190_READABLE                   1U
+#define DCM_DID_F190_WRITABLE                   1U
+#define DCM_DID_F190_WRITE_SECURITY_LEVEL       1U
+#define DCM_DID_F190_SESSION_APP_DEF            1U
+#define DCM_DID_F190_SESSION_APP_EXT            1U
+#define DCM_DID_F190_SESSION_BOOT_DEF           0U
+#define DCM_DID_F190_SESSION_BOOT_PROG          0U
+#define DCM_DID_F190_SESSION_BOOT_EXT           0U
+
+/* F193: HW Version - ReadOnly, App only */
+#define DCM_DID_F193_READABLE                   1U
+#define DCM_DID_F193_WRITABLE                   0U
+#define DCM_DID_F193_SECURITY_LEVEL             0U
+#define DCM_DID_F193_SESSION_APP_DEF            1U
+#define DCM_DID_F193_SESSION_APP_EXT            1U
+#define DCM_DID_F193_SESSION_BOOT_DEF           0U
+#define DCM_DID_F193_SESSION_BOOT_PROG          0U
+#define DCM_DID_F193_SESSION_BOOT_EXT           0U
+
+/* F195: SW Version - ReadOnly, App only */
 #define DCM_DID_F195_READABLE                   1U
-#define DCM_DID_F195_WRITABLE                   1U      /* Requires Security Level 2 */
+#define DCM_DID_F195_WRITABLE                   0U
+#define DCM_DID_F195_SECURITY_LEVEL             0U
+#define DCM_DID_F195_SESSION_APP_DEF            1U
+#define DCM_DID_F195_SESSION_APP_EXT            1U
+#define DCM_DID_F195_SESSION_BOOT_DEF           0U
+#define DCM_DID_F195_SESSION_BOOT_PROG          0U
+#define DCM_DID_F195_SESSION_BOOT_EXT           0U
+
+/* F198: Fingerprint - Read all sessions, Write only in FBL (Boot Prog, L2) */
+#define DCM_DID_F198_READABLE                   1U
+#define DCM_DID_F198_WRITABLE                   0U      /* Write in FBL only (L2) */
+#define DCM_DID_F198_SESSION_APP_DEF            1U
+#define DCM_DID_F198_SESSION_APP_EXT            1U
+#define DCM_DID_F198_SESSION_BOOT_DEF           1U
+#define DCM_DID_F198_SESSION_BOOT_PROG          1U
+#define DCM_DID_F198_SESSION_BOOT_EXT           1U
+
+/* F199: Programming Date - Read all sessions, Write only in FBL (Boot Prog, L2) */
+#define DCM_DID_F199_READABLE                   1U
+#define DCM_DID_F199_WRITABLE                   0U      /* Write in FBL only (L2) */
+#define DCM_DID_F199_SESSION_APP_DEF            1U
+#define DCM_DID_F199_SESSION_APP_EXT            1U
+#define DCM_DID_F199_SESSION_BOOT_DEF           1U
+#define DCM_DID_F199_SESSION_BOOT_PROG          1U
+#define DCM_DID_F199_SESSION_BOOT_EXT           1U
+
+/* F200: Temp Threshold - Read App only, Write App Ext L1 */
+#define DCM_DID_F200_READABLE                   1U
+#define DCM_DID_F200_WRITABLE                   1U
+#define DCM_DID_F200_WRITE_SECURITY_LEVEL       1U
+#define DCM_DID_F200_SESSION_APP_DEF            1U
+#define DCM_DID_F200_SESSION_APP_EXT            1U
+#define DCM_DID_F200_SESSION_BOOT_DEF           0U
+#define DCM_DID_F200_SESSION_BOOT_PROG          0U
+#define DCM_DID_F200_SESSION_BOOT_EXT           0U
+
+/* F201: Author Name - Read App only, Write App Ext L1 */
+#define DCM_DID_F201_READABLE                   1U
+#define DCM_DID_F201_WRITABLE                   1U
+#define DCM_DID_F201_WRITE_SECURITY_LEVEL       1U
+#define DCM_DID_F201_SESSION_APP_DEF            1U
+#define DCM_DID_F201_SESSION_APP_EXT            1U
+#define DCM_DID_F201_SESSION_BOOT_DEF           0U
+#define DCM_DID_F201_SESSION_BOOT_PROG          0U
+#define DCM_DID_F201_SESSION_BOOT_EXT           0U
+
+/* F300: Public Key - Read Boot only, Write only in FBL (Boot Prog, L2) */
+#define DCM_DID_F300_READABLE                   0U      /* Not readable in App (Boot only) */
+#define DCM_DID_F300_WRITABLE                   0U      /* Write in FBL only (L2) */
+#define DCM_DID_F300_SESSION_APP_DEF            0U
+#define DCM_DID_F300_SESSION_APP_EXT            0U
+#define DCM_DID_F300_SESSION_BOOT_DEF           1U
+#define DCM_DID_F300_SESSION_BOOT_PROG          1U
+#define DCM_DID_F300_SESSION_BOOT_EXT           1U
+
+/* F500: Reset Counter - ReadOnly, App only */
+#define DCM_DID_F500_READABLE                   1U
+#define DCM_DID_F500_WRITABLE                   0U
+#define DCM_DID_F500_SECURITY_LEVEL             0U
+#define DCM_DID_F500_SESSION_APP_DEF            1U
+#define DCM_DID_F500_SESSION_APP_EXT            1U
+#define DCM_DID_F500_SESSION_BOOT_DEF           0U
+#define DCM_DID_F500_SESSION_BOOT_PROG          0U
+#define DCM_DID_F500_SESSION_BOOT_EXT           0U
+
+/* F501: Flash Counter - ReadOnly, all sessions */
+#define DCM_DID_F501_READABLE                   1U
+#define DCM_DID_F501_WRITABLE                   0U
+#define DCM_DID_F501_SECURITY_LEVEL             0U
+#define DCM_DID_F501_SESSION_APP_DEF            1U
+#define DCM_DID_F501_SESSION_APP_EXT            1U
+#define DCM_DID_F501_SESSION_BOOT_DEF           1U
+#define DCM_DID_F501_SESSION_BOOT_PROG          1U
+#define DCM_DID_F501_SESSION_BOOT_EXT           1U
 
 /* ============================================================================
  * 3. ROUTINE CONTROL CONFIGURATION
@@ -166,13 +316,23 @@ extern "C" {
 #define DCM_APP_END_ADDRESS                     0x080FFFFFU
 #define DCM_APP_SIZE                            (0x000F0000U)  /* 960 KB */
 
-/* DID Storage in NVRAM */
+/* DID Storage in NVRAM (each DID has a fixed offset in NVRAM partition) */
 #define DCM_NVRAM_DID_BASE_ADDRESS              0x08000000U
-#define DCM_NVRAM_DID_F190_OFFSET               0x0000U
-#define DCM_NVRAM_DID_F18C_OFFSET               0x0020U
-#define DCM_NVRAM_DID_F183_OFFSET               0x0050U
-#define DCM_NVRAM_DID_F195_OFFSET               0x0070U
-#define DCM_NVRAM_DID_F501_OFFSET               0x0090U
+#define DCM_NVRAM_DID_F180_OFFSET               0x0000U   /* BOOT_SW_ID: 16 bytes */
+#define DCM_NVRAM_DID_F183_OFFSET               0x0010U   /* ECU_NAME: 16 bytes */
+#define DCM_NVRAM_DID_F18A_OFFSET               0x0020U   /* SUPPLIER_ID: 3 bytes */
+#define DCM_NVRAM_DID_F18B_OFFSET               0x0024U   /* MFG_DATE: 4 bytes BCD */
+#define DCM_NVRAM_DID_F18C_OFFSET               0x0028U   /* SERIAL_NUM: 32 bytes */
+#define DCM_NVRAM_DID_F190_OFFSET               0x0048U   /* VIN: 17 bytes */
+#define DCM_NVRAM_DID_F193_OFFSET               0x0060U   /* HW_VERSION: 8 bytes */
+#define DCM_NVRAM_DID_F195_OFFSET               0x0068U   /* SW_VERSION: 8 bytes */
+#define DCM_NVRAM_DID_F198_OFFSET               0x0070U   /* FINGERPRINT: 32 bytes */
+#define DCM_NVRAM_DID_F199_OFFSET               0x0090U   /* PROG_DATE: 4 bytes BCD */
+#define DCM_NVRAM_DID_F200_OFFSET               0x0094U   /* TEMP_THRESHOLD: 2 bytes */
+#define DCM_NVRAM_DID_F201_OFFSET               0x0096U   /* AUTHOR_NAME: 16 bytes */
+#define DCM_NVRAM_DID_F300_OFFSET               0x00A8U   /* PUBLIC_KEY: 64 bytes */
+#define DCM_NVRAM_DID_F500_OFFSET               0x00E8U   /* RESET_COUNTER: 1 byte */
+#define DCM_NVRAM_DID_F501_OFFSET               0x00EAU   /* FLASH_COUNTER: 2 bytes */
 
 /* ============================================================================
  * 8. FEATURES & DEBUG

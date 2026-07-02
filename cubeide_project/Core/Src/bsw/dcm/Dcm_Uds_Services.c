@@ -5,6 +5,7 @@
  * @date 2024
  * 
  * Implementation of UDS services following AUTOSAR DCM module standards.
+ * Supports 16 DIDs as per requirement: F180-F18C, F190-F195, F198-F201, F300, F500-F501
  */
 
 /*******************************************************************************
@@ -14,6 +15,7 @@
 #include "common.h"
 #include <bsw/dcm/Dcm.h>
 #include <bsw/dcm/Dcm_Uds_Config.h>
+#include <bsw/nvm/nvm_manager.h>
 #include <rte/rte_interface.h>
 
 /*******************************************************************************
@@ -21,13 +23,6 @@
  *******************************************************************************/
 #define DCM_UDS_SERVICES_C_VERSION  1U
 #define DCM_UDS_SERVICES_PATCH_VERSION  0U
-
-/* Memory addresses for DIDs storage */
-#define NVRAM_DID_F190_VIN_ADDR             0x0000U
-#define NVRAM_DID_F18C_SERIAL_ADDR          0x0020U
-#define NVRAM_DID_F183_ECU_NAME_ADDR        0x0050U
-#define NVRAM_DID_F195_SW_VERSION_ADDR      0x0070U
-#define NVRAM_DID_F501_FLASH_COUNTER_ADDR   0x0090U
 
 /* Security Access Seed Length */
 #define SECURITY_SEED_LENGTH                DCM_SECURITY_SEED_LENGTH
@@ -46,7 +41,19 @@ static uint32 Dcm_SecurityAttemptCounter = 0U;
 static uint32 Dcm_SecurityLockTime = 0U;
 boolean Dcm_SecurityAccessSequence = FALSE;
 
-const uint8 DID_F183_ECU_NAME[16] = {'S','T','M','3','2','V','E','T','6',' ',' ',' ',' ',' ',' ',' '};
+/* DID1: F180 - Boot Software ID (16 bytes ASCII, ReadOnly) */
+const uint8 DID_F180_BOOT_SW_ID[16] = {'B','o','o','t','-','V','1','.','0',
+                                       0x20,0x20,0x20,0x20,0x20,0x20,0x20};
+
+/* DID2: F183 - ECU Name (16 bytes ASCII, ReadOnly) */
+const uint8 DID_F183_ECU_NAME[16] = {'S','T','M','3','2','V','E','T','6',
+                                     ' ',' ',' ',' ',' ',' ',' '};
+
+/* DID4: F18A - System Supplier ID (2 bytes ASCII, ReadOnly) */
+const uint8 DID_F18A_SUPPLIER_ID[2] = {'S','T'};
+
+/* DID5: F18B - Manufacturing Date default (4 bytes BCD: YY/MM/DD/WW, ReadOnly) */
+const uint8 DID_F18B_MFG_DATE_DEFAULT[4] = {0x24U, 0x06U, 0x11U, 0x02U}; /* 2024/06/11/Tue */
 
 /*******************************************************************************
  * LOCAL FUNCTION PROTOTYPES
@@ -165,29 +172,83 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_ReadDataByIdentifier_0x22(
  * Read specific DIDs implementation
  */
 
-FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF190_Vin(
-    CONSTP2VAR(Dcm_Did_F190_VinType, AUTOMATIC, DCM_APPL_DATA) VinData_Ptr,
+/* DID1: F180 - Boot Software ID (16 bytes ASCII, ReadOnly, 不支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF180_BootSwId(
+    CONSTP2VAR(Dcm_Did_F180_BootSwIdType, AUTOMATIC, DCM_APPL_DATA) BootSwIdData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    if ((NULL_PTR == BootSwIdData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    MEMCPY(BootSwIdData_Ptr->BootSwId, DID_F180_BOOT_SW_ID, 16U);
+    return E_OK;
+}
+
+/* DID2: F183 - ECU Name (16 bytes ASCII, ReadOnly, 不支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF183_EcuName(
+    CONSTP2VAR(Dcm_Did_F183_EcuNameType, AUTOMATIC, DCM_APPL_DATA) EcuNameData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    if ((NULL_PTR == EcuNameData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    MEMCPY(EcuNameData_Ptr->EcuName, DID_F183_ECU_NAME, 16U);
+    return E_OK;
+}
+
+/* DID3: F186 - Active Diagnostic Session (1 byte hex, ReadOnly, 不支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF186_Session(
+    CONSTP2VAR(Dcm_Did_F186_SessionType, AUTOMATIC, DCM_APPL_DATA) SessionData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    if ((NULL_PTR == SessionData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    SessionData_Ptr->Session = Dcm_GetCurrentSession();
+    return E_OK;
+}
+
+/* DID4: F18A - System Supplier ID (3 bytes ASCII, ReadOnly, 不支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF18A_SupplierId(
+    CONSTP2VAR(Dcm_Did_F18A_SupplierIdType, AUTOMATIC, DCM_APPL_DATA) SupplierIdData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    if ((NULL_PTR == SupplierIdData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    MEMCPY(SupplierIdData_Ptr->SupplierId, DID_F18A_SUPPLIER_ID, 2U);
+    return E_OK;
+}
+
+/* DID5: F18B - ECU Manufacturing Date (4 bytes BCD: YY/MM/DD/WW, ReadOnly, 不支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF18B_MfgDate(
+    CONSTP2VAR(Dcm_Did_F18B_MfgDateType, AUTOMATIC, DCM_APPL_DATA) MfgDateData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 )
 {
     Std_ReturnType retVal = E_OK;
-    uint16 didLength = 17U;
+    uint16 didLength = 4U;
     
-    if ((NULL_PTR == VinData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+    if ((NULL_PTR == MfgDateData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
         return E_NOT_OK;
     }
     
-    /* Read VIN from NVRAM */
-    retVal = Dcm_GetDidFromNvram(DID_VIN, VinData_Ptr->Vin, &didLength);
+    retVal = Dcm_GetDidFromNvram(DID_ECU_MANUFACTURING_DATE, 
+                                   MfgDateData_Ptr->MfgDate, &didLength);
     
     if (E_OK != retVal) {
-        *ErrorCode_Ptr = DCM_E_NO_ACCESS_TO_REQUESTED_DID;
-        return E_NOT_OK;
+        /* Return default if NVRAM not programmed */
+        MEMCPY(MfgDateData_Ptr->MfgDate, DID_F18B_MFG_DATE_DEFAULT, 4U);
     }
     
     return E_OK;
 }
 
+/* DID6: F18C - ECU Serial Number (32 bytes ASCII, ReadOnly, 不支持2E) */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF18C_Serial(
     CONSTP2VAR(Dcm_Did_F18C_SerialType, AUTOMATIC, DCM_APPL_DATA) SerialData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
@@ -200,7 +261,6 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF18C_Serial(
         return E_NOT_OK;
     }
     
-    /* Read Serial Number from NVRAM */
     retVal = Dcm_GetDidFromNvram(DID_ECU_SERIAL_NUMBER, 
                                    SerialData_Ptr->SerialNumber, &didLength);
     
@@ -212,19 +272,54 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF18C_Serial(
     return E_OK;
 }
 
-FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF183_EcuName(
-    CONSTP2VAR(Dcm_Did_F183_EcuNameType, AUTOMATIC, DCM_APPL_DATA) EcuNameData_Ptr,
+/* DID7: F190 - VIN (17 bytes ASCII, ReadWrite, 支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF190_Vin(
+    CONSTP2VAR(Dcm_Did_F190_VinType, AUTOMATIC, DCM_APPL_DATA) VinData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
 )
 {
-    if ((NULL_PTR == EcuNameData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+    Std_ReturnType retVal = E_OK;
+    uint16 didLength = 17U;
+    
+    if ((NULL_PTR == VinData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
         return E_NOT_OK;
     }
-    MEMCPY(EcuNameData_Ptr->EcuName, DID_F183_ECU_NAME, 16U);
-
+    
+    retVal = Dcm_GetDidFromNvram(DID_VIN, VinData_Ptr->Vin, &didLength);
+    
+    if (E_OK != retVal) {
+        *ErrorCode_Ptr = DCM_E_NO_ACCESS_TO_REQUESTED_DID;
+        return E_NOT_OK;
+    }
+    
     return E_OK;
 }
 
+/* DID8: F193 - System Supplier HW Version (8 bytes ASCII, ReadOnly, 不支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF193_HwVersion(
+    CONSTP2VAR(Dcm_Did_F193_HwVersionType, AUTOMATIC, DCM_APPL_DATA) HwVersionData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    Std_ReturnType retVal = E_OK;
+    uint16 didLength = 8U;
+    
+    if ((NULL_PTR == HwVersionData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    
+    retVal = Dcm_GetDidFromNvram(DID_SYSTEM_SUPPLIER_HW_VERSION,
+                                   HwVersionData_Ptr->HwVersion, &didLength);
+    
+    if (E_OK != retVal) {
+        *ErrorCode_Ptr = DCM_E_NO_ACCESS_TO_REQUESTED_DID;
+        return E_NOT_OK;
+    }
+    
+    return E_OK;
+}
+
+/* DID9: F195 - System Supplier SW Version (8 bytes ASCII, ReadOnly, 不支持2E) */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF195_SwVersion(
     CONSTP2VAR(Dcm_Did_F195_SwVersionType, AUTOMATIC, DCM_APPL_DATA) SwVersionData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
@@ -237,7 +332,6 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF195_SwVersion(
         return E_NOT_OK;
     }
     
-    /* Read SW Version from NVRAM */
     retVal = Dcm_GetDidFromNvram(DID_SYSTEM_SUPPLIER_SW_VERSION, 
                                    SwVersionData_Ptr->SwVersion, &didLength);
     
@@ -249,6 +343,155 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF195_SwVersion(
     return E_OK;
 }
 
+/* DID10: F198 - Fingerprint (32 bytes ASCII, ReadWrite, 支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF198_Fingerprint(
+    CONSTP2VAR(Dcm_Did_F198_FingerprintType, AUTOMATIC, DCM_APPL_DATA) FingerprintData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    Std_ReturnType retVal = E_OK;
+    uint16 didLength = 32U;
+    
+    if ((NULL_PTR == FingerprintData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    
+    retVal = Dcm_GetDidFromNvram(DID_FINGERPRINT,
+                                   FingerprintData_Ptr->Fingerprint, &didLength);
+    
+    if (E_OK != retVal) {
+        *ErrorCode_Ptr = DCM_E_NO_ACCESS_TO_REQUESTED_DID;
+        return E_NOT_OK;
+    }
+    
+    return E_OK;
+}
+
+/* DID11: F199 - Programming Date (4 bytes BCD, ReadWrite, 支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF199_ProgDate(
+    CONSTP2VAR(Dcm_Did_F199_ProgDateType, AUTOMATIC, DCM_APPL_DATA) ProgDateData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    Std_ReturnType retVal = E_OK;
+    uint16 didLength = 4U;
+    
+    if ((NULL_PTR == ProgDateData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    
+    retVal = Dcm_GetDidFromNvram(DID_PROGRAMMING_DATE,
+                                   ProgDateData_Ptr->ProgDate, &didLength);
+    
+    if (E_OK != retVal) {
+        *ErrorCode_Ptr = DCM_E_NO_ACCESS_TO_REQUESTED_DID;
+        return E_NOT_OK;
+    }
+    
+    return E_OK;
+}
+
+/* DID12: F200 - Temperature Threshold (2 bytes unsigned, ReadWrite, 支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF200_TempThreshold(
+    CONSTP2VAR(Dcm_Did_F200_TempThresholdType, AUTOMATIC, DCM_APPL_DATA) TempThresholdData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    Std_ReturnType retVal = E_OK;
+    uint16 didLength = 2U;
+    uint8 tempBuffer[2];
+    
+    if ((NULL_PTR == TempThresholdData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    
+    retVal = Dcm_GetDidFromNvram(DID_TEMPERATURE_THRESHOLD, tempBuffer, &didLength);
+    
+    if (E_OK != retVal) {
+        *ErrorCode_Ptr = DCM_E_NO_ACCESS_TO_REQUESTED_DID;
+        return E_NOT_OK;
+    }
+    
+    TempThresholdData_Ptr->TempThreshold = (uint16)((tempBuffer[0] << 8U) | tempBuffer[1]);
+    
+    return E_OK;
+}
+
+/* DID13: F201 - Author Name (16 bytes ASCII, ReadWrite, 支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF201_AuthorName(
+    CONSTP2VAR(Dcm_Did_F201_AuthorNameType, AUTOMATIC, DCM_APPL_DATA) AuthorNameData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    Std_ReturnType retVal = E_OK;
+    uint16 didLength = 16U;
+    
+    if ((NULL_PTR == AuthorNameData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    
+    retVal = Dcm_GetDidFromNvram(DID_AUTHOR_NAME,
+                                   AuthorNameData_Ptr->AuthorName, &didLength);
+    
+    if (E_OK != retVal) {
+        *ErrorCode_Ptr = DCM_E_NO_ACCESS_TO_REQUESTED_DID;
+        return E_NOT_OK;
+    }
+    
+    return E_OK;
+}
+
+/* DID14: F300 - Public Key (64 bytes hex, ReadWrite, 支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF300_PublicKey(
+    CONSTP2VAR(Dcm_Did_F300_PublicKeyType, AUTOMATIC, DCM_APPL_DATA) PublicKeyData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    Std_ReturnType retVal = E_OK;
+    uint16 didLength = 64U;
+    
+    if ((NULL_PTR == PublicKeyData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    
+    retVal = Dcm_GetDidFromNvram(DID_PUBLIC_KEY,
+                                   PublicKeyData_Ptr->PublicKey, &didLength);
+    
+    if (E_OK != retVal) {
+        *ErrorCode_Ptr = DCM_E_NO_ACCESS_TO_REQUESTED_DID;
+        return E_NOT_OK;
+    }
+    
+    return E_OK;
+}
+
+/* DID15: F500 - Reset Counter (1 byte unsigned, ReadOnly, 不支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF500_ResetCounter(
+    CONSTP2VAR(Dcm_Did_F500_ResetCounterType, AUTOMATIC, DCM_APPL_DATA) ResetCounterData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    Std_ReturnType retVal = E_OK;
+    uint16 didLength = 1U;
+    uint8 tempBuffer[1];
+    
+    if ((NULL_PTR == ResetCounterData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    
+    retVal = Dcm_GetDidFromNvram(DID_RESET_COUNTER, tempBuffer, &didLength);
+    
+    if (E_OK != retVal) {
+        *ErrorCode_Ptr = DCM_E_NO_ACCESS_TO_REQUESTED_DID;
+        return E_NOT_OK;
+    }
+    
+    ResetCounterData_Ptr->ResetCounter = tempBuffer[0];
+    
+    return E_OK;
+}
+
+/* DID16: F501 - Flash Counter (2 bytes unsigned, ReadOnly, 不支持2E) */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF501_FlashCounter(
     CONSTP2VAR(Dcm_Did_F501_FlashCounterType, AUTOMATIC, DCM_APPL_DATA) FlashCounterData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
@@ -262,7 +505,6 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF501_FlashCounter(
         return E_NOT_OK;
     }
     
-    /* Read Flash Counter from NVRAM */
     retVal = Dcm_GetDidFromNvram(DID_FLASH_COUNTER, tempBuffer, &didLength);
     
     if (E_OK != retVal) {
@@ -270,7 +512,6 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestReadDidF501_FlashCounter(
         return E_NOT_OK;
     }
     
-    /* Convert bytes to uint16 (big-endian) */
     FlashCounterData_Ptr->FlashCounter = (uint16)((tempBuffer[0] << 8U) | tempBuffer[1]);
     
     return E_OK;
@@ -341,6 +582,7 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_Service_WriteDataByIdentifier_0x2E(
     return E_OK;
 }
 
+/* DID7: F190 - VIN Write (17 bytes ASCII, 支持2E) */
 FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF190_Vin(
     CONSTP2CONST(Dcm_Did_F190_VinType, AUTOMATIC, DCM_APPL_DATA) VinData_Ptr,
     CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
@@ -352,14 +594,151 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF190_Vin(
         return E_NOT_OK;
     }
     
-    /* Check security access */
     if (!Dcm_IsSecurityLevelUnlocked(1U)) {
         *ErrorCode_Ptr = DCM_E_SECURITY_ACCESS_DENIED;
         return E_NOT_OK;
     }
     
-    /* Write VIN to NVRAM */
     retVal = Dcm_WriteDidToNvram(DID_VIN, VinData_Ptr->Vin, 17U);
+    
+    if (E_OK != retVal) {
+        *ErrorCode_Ptr = DCM_E_GENERAL_PROGRAMMING_FAILURE;
+        return E_NOT_OK;
+    }
+    
+    return E_OK;
+}
+
+/* DID10: F198 - Fingerprint Write (32 bytes ASCII, 支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF198_Fingerprint(
+    CONSTP2CONST(Dcm_Did_F198_FingerprintType, AUTOMATIC, DCM_APPL_DATA) FingerprintData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    Std_ReturnType retVal = E_OK;
+    
+    if ((NULL_PTR == FingerprintData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    
+    if (!Dcm_IsSecurityLevelUnlocked(1U)) {
+        *ErrorCode_Ptr = DCM_E_SECURITY_ACCESS_DENIED;
+        return E_NOT_OK;
+    }
+    
+    retVal = Dcm_WriteDidToNvram(DID_FINGERPRINT, FingerprintData_Ptr->Fingerprint, 32U);
+    
+    if (E_OK != retVal) {
+        *ErrorCode_Ptr = DCM_E_GENERAL_PROGRAMMING_FAILURE;
+        return E_NOT_OK;
+    }
+    
+    return E_OK;
+}
+
+/* DID11: F199 - Programming Date Write (4 bytes BCD, 支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF199_ProgDate(
+    CONSTP2CONST(Dcm_Did_F199_ProgDateType, AUTOMATIC, DCM_APPL_DATA) ProgDateData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    Std_ReturnType retVal = E_OK;
+    
+    if ((NULL_PTR == ProgDateData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    
+    if (!Dcm_IsSecurityLevelUnlocked(1U)) {
+        *ErrorCode_Ptr = DCM_E_SECURITY_ACCESS_DENIED;
+        return E_NOT_OK;
+    }
+    
+    retVal = Dcm_WriteDidToNvram(DID_PROGRAMMING_DATE, ProgDateData_Ptr->ProgDate, 4U);
+    
+    if (E_OK != retVal) {
+        *ErrorCode_Ptr = DCM_E_GENERAL_PROGRAMMING_FAILURE;
+        return E_NOT_OK;
+    }
+    
+    return E_OK;
+}
+
+/* DID12: F200 - Temperature Threshold Write (2 bytes unsigned, 支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF200_TempThreshold(
+    CONSTP2CONST(Dcm_Did_F200_TempThresholdType, AUTOMATIC, DCM_APPL_DATA) TempThresholdData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    Std_ReturnType retVal = E_OK;
+    uint8 tempBuffer[2];
+    
+    if ((NULL_PTR == TempThresholdData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    
+    if (!Dcm_IsSecurityLevelUnlocked(1U)) {
+        *ErrorCode_Ptr = DCM_E_SECURITY_ACCESS_DENIED;
+        return E_NOT_OK;
+    }
+    
+    tempBuffer[0] = (uint8)(TempThresholdData_Ptr->TempThreshold >> 8U);
+    tempBuffer[1] = (uint8)(TempThresholdData_Ptr->TempThreshold & 0xFFU);
+    
+    retVal = Dcm_WriteDidToNvram(DID_TEMPERATURE_THRESHOLD, tempBuffer, 2U);
+    
+    if (E_OK != retVal) {
+        *ErrorCode_Ptr = DCM_E_GENERAL_PROGRAMMING_FAILURE;
+        return E_NOT_OK;
+    }
+    
+    return E_OK;
+}
+
+/* DID13: F201 - Author Name Write (16 bytes ASCII, 支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF201_AuthorName(
+    CONSTP2CONST(Dcm_Did_F201_AuthorNameType, AUTOMATIC, DCM_APPL_DATA) AuthorNameData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    Std_ReturnType retVal = E_OK;
+    
+    if ((NULL_PTR == AuthorNameData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    
+    if (!Dcm_IsSecurityLevelUnlocked(1U)) {
+        *ErrorCode_Ptr = DCM_E_SECURITY_ACCESS_DENIED;
+        return E_NOT_OK;
+    }
+    
+    retVal = Dcm_WriteDidToNvram(DID_AUTHOR_NAME, AuthorNameData_Ptr->AuthorName, 16U);
+    
+    if (E_OK != retVal) {
+        *ErrorCode_Ptr = DCM_E_GENERAL_PROGRAMMING_FAILURE;
+        return E_NOT_OK;
+    }
+    
+    return E_OK;
+}
+
+/* DID14: F300 - Public Key Write (64 bytes hex, 支持2E) */
+FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestWriteDidF300_PublicKey(
+    CONSTP2CONST(Dcm_Did_F300_PublicKeyType, AUTOMATIC, DCM_APPL_DATA) PublicKeyData_Ptr,
+    CONSTP2VAR(Dcm_NegativeResponseCodeType, AUTOMATIC, DCM_APPL_DATA) ErrorCode_Ptr
+)
+{
+    Std_ReturnType retVal = E_OK;
+    
+    if ((NULL_PTR == PublicKeyData_Ptr) || (NULL_PTR == ErrorCode_Ptr)) {
+        return E_NOT_OK;
+    }
+    
+    if (!Dcm_IsSecurityLevelUnlocked(1U)) {
+        *ErrorCode_Ptr = DCM_E_SECURITY_ACCESS_DENIED;
+        return E_NOT_OK;
+    }
+    
+    retVal = Dcm_WriteDidToNvram(DID_PUBLIC_KEY, PublicKeyData_Ptr->PublicKey, 64U);
     
     if (E_OK != retVal) {
         *ErrorCode_Ptr = DCM_E_GENERAL_PROGRAMMING_FAILURE;
@@ -490,10 +869,6 @@ FUNC(Std_ReturnType, DCM_CODE) Dcm_RequestSeed_Level1(
         /* Reset security access sequence flag if already unlocked */
         Dcm_SecurityAccessSequence = FALSE; 
     }
-
-    // for (uint8 i = 0U; i < SECURITY_SEED_LENGTH; i++) {
-    //     SeedData_Ptr[i] = Dcm_SecuritySeed_Level1[i];
-    // }
     
     *SeedLength_Ptr = SECURITY_SEED_LENGTH;
     
@@ -569,58 +944,136 @@ static FUNC(Std_ReturnType, DCM_CODE) Dcm_GetDidFromNvram(
     }
     
     switch (DidId) {
-        case DID_VIN:
-            /* Default VIN: "1G1YY12V347175635" */
-            // Nvram_Manager_Read(NVRAM_DID_F190_VIN_ADDR, DidData_Ptr, 17U);
-            *DidLength_Ptr = 17U;
-            break;
-            
-        case DID_ECU_SERIAL_NUMBER:
-            /* Serial number: 32 bytes */
-            // Nvram_Manager_Read(NVRAM_DID_F18C_SERIAL_ADDR, DidData_Ptr, 32U);
-            *DidLength_Ptr = 32U;
-            break;
-            
-        case DID_ECU_NAME:
+        /* DID1: F180 - Boot Software ID (16 bytes ASCII, ReadOnly) */
+        case DID_BOOT_SOFTWARE_ID:
         {
-            Dcm_Did_F183_EcuNameType ecuName;
-            Dcm_NegativeResponseCodeType nrc = 0U;
-
-            retVal = Dcm_RequestReadDidF183_EcuName(&ecuName, &nrc);
-            if (retVal == E_OK) {
-                MEMCPY(DidData_Ptr, ecuName.EcuName, 16U);
-                *DidLength_Ptr = 16U;
-            }
+            MEMCPY(DidData_Ptr, DID_F180_BOOT_SW_ID, 16U);
+            *DidLength_Ptr = 16U;
+            retVal = E_OK;
             break;
         }
             
-        case DID_SYSTEM_SUPPLIER_SW_VERSION:
-            /* SW Version: "SW-V1.1.0   " (8 bytes) */
-            // Nvram_Manager_Read(NVRAM_DID_F195_SW_VERSION_ADDR, DidData_Ptr, 8U);
+        /* DID2: F183 - ECU Name (16 bytes ASCII, ReadOnly) */
+        case DID_ECU_NAME:
+        {
+            MEMCPY(DidData_Ptr, DID_F183_ECU_NAME, 16U);
+            *DidLength_Ptr = 16U;
+            retVal = E_OK;
+            break;
+        }
+            
+        /* DID3: F186 - Active Diagnostic Session (1 byte hex, ReadOnly) */
+        case DID_ACTIVE_DIAGNOSTIC_SESSION:
+            DidData_Ptr[0] = Dcm_GetCurrentSession();
+            *DidLength_Ptr = 1U;
+            break;
+            
+        /* DID4: F18A - System Supplier ID (2 bytes ASCII, ReadOnly) */
+        case DID_SYSTEM_SUPPLIER_ID:
+            MEMCPY(DidData_Ptr, DID_F18A_SUPPLIER_ID, 2U);
+            *DidLength_Ptr = 2U;
+            retVal = E_OK;
+            break;
+            
+        /* DID5: F18B - ECU Manufacturing Date (4 bytes BCD, ReadOnly) */
+        case DID_ECU_MANUFACTURING_DATE:
+            retVal = Nvm_Read(NVM_PARTITION_STATIC_DID_ADDR,
+                              NVM_STATIC_F18B_MFG_DATE_OFFSET,
+                              DidData_Ptr, 4U);
+            *DidLength_Ptr = 4U;
+            break;
+            
+        /* DID6: F18C - ECU Serial Number (32 bytes ASCII, ReadOnly) */
+        case DID_ECU_SERIAL_NUMBER:
+            retVal = Nvm_Read(NVM_PARTITION_STATIC_DID_ADDR,
+                              NVM_STATIC_F18C_SERIAL_OFFSET,
+                              DidData_Ptr, 32U);
+            *DidLength_Ptr = 32U;
+            break;
+            
+        /* DID7: F190 - VIN (17 bytes ASCII, ReadWrite) */
+        case DID_VIN:
+            retVal = Nvm_Read(NVM_PARTITION_DYNAMIC_DID_ADDR,
+                              NVM_DYNAMIC_F190_VIN_OFFSET,
+                              DidData_Ptr, 17U);
+            *DidLength_Ptr = 17U;
+            break;
+            
+        /* DID8: F193 - System Supplier HW Version (8 bytes ASCII, ReadOnly) */
+        case DID_SYSTEM_SUPPLIER_HW_VERSION:
+            retVal = Nvm_Read(NVM_PARTITION_STATIC_DID_ADDR,
+                              NVM_STATIC_F193_HW_VER_OFFSET,
+                              DidData_Ptr, 8U);
             *DidLength_Ptr = 8U;
             break;
             
-        case DID_FLASH_COUNTER:
-            /* Flash Counter: 2 bytes */
-            // Nvram_Manager_Read(NVRAM_DID_F501_FLASH_COUNTER_ADDR, DidData_Ptr, 2U);
+        /* DID9: F195 - System Supplier SW Version (8 bytes ASCII, ReadOnly) */
+        case DID_SYSTEM_SUPPLIER_SW_VERSION:
+            retVal = Nvm_Read(NVM_PARTITION_STATIC_DID_ADDR,
+                              NVM_STATIC_F195_SW_VER_OFFSET,
+                              DidData_Ptr, 8U);
+            *DidLength_Ptr = 8U;
+            break;
+            
+        /* DID10: F198 - Fingerprint (32 bytes ASCII, ReadWrite) */
+        case DID_FINGERPRINT:
+            retVal = Nvm_Read(NVM_PARTITION_DYNAMIC_DID_ADDR,
+                              NVM_DYNAMIC_F198_FINGERPRINT_OFFSET,
+                              DidData_Ptr, 32U);
+            *DidLength_Ptr = 32U;
+            break;
+            
+        /* DID11: F199 - Programming Date (4 bytes BCD, ReadWrite) */
+        case DID_PROGRAMMING_DATE:
+            retVal = Nvm_Read(NVM_PARTITION_DYNAMIC_DID_ADDR,
+                              NVM_DYNAMIC_F199_PROG_DATE_OFFSET,
+                              DidData_Ptr, 4U);
+            *DidLength_Ptr = 4U;
+            break;
+            
+        /* DID12: F200 - Temperature Threshold (2 bytes unsigned, ReadWrite) */
+        case DID_TEMPERATURE_THRESHOLD:
+            retVal = Nvm_Read(NVM_PARTITION_DYNAMIC_DID_ADDR,
+                              NVM_DYNAMIC_F200_TEMP_TH_OFFSET,
+                              DidData_Ptr, 2U);
             *DidLength_Ptr = 2U;
             break;
             
-        case DID_SYSTEM_SUPPLIER_ID:
-            /* Supplier ID: "ST " (3 bytes) */
-            DidData_Ptr[0] = 'S';
-            DidData_Ptr[1] = 'T';
-            DidData_Ptr[2] = ' ';
-            *DidLength_Ptr = 3U;
+        /* DID13: F201 - Author Name (16 bytes ASCII, ReadWrite) */
+        case DID_AUTHOR_NAME:
+            retVal = Nvm_Read(NVM_PARTITION_DYNAMIC_DID_ADDR,
+                              NVM_DYNAMIC_F201_AUTHOR_OFFSET,
+                              DidData_Ptr, 16U);
+            *DidLength_Ptr = 16U;
             break;
             
-        case DID_ACTIVE_DIAGNOSTIC_SESSION:
-            /* Current diagnostic session */
-            DidData_Ptr[0] = Dcm_GetCurrentSession();  /* Current diagnostic session */
-            printf("Session: %d \n",Dcm_GetCurrentSession());
+        /* DID14: F300 - Public Key (64 bytes hex, ReadWrite) */
+        case DID_PUBLIC_KEY:
+            retVal = Nvm_Read(NVM_PARTITION_DYNAMIC_DID_ADDR,
+                              NVM_DYNAMIC_F300_PUBLIC_KEY_OFFSET,
+                              DidData_Ptr, 64U);
+            *DidLength_Ptr = 64U;
+            break;
+            
+        /* DID15: F500 - Reset Counter (1 byte unsigned, ReadOnly) */
+        case DID_RESET_COUNTER:
+            DidData_Ptr[0] = Nvm_ReadResetCounter();
             *DidLength_Ptr = 1U;
             break;
-
+            
+        /* DID16: F501 - Flash Counter (2 bytes unsigned, ReadOnly) */
+        case DID_FLASH_COUNTER:
+        {
+            uint8 buf[2];
+            retVal = Nvm_Read(NVM_PARTITION_BOOTINFO_ADDR,
+                              NVM_BOOTINFO_PROGCNT_OFFSET,
+                              buf, 2U);
+            DidData_Ptr[0] = buf[0];
+            DidData_Ptr[1] = buf[1];
+            *DidLength_Ptr = 2U;
+            break;
+        }
+            
         default:
             retVal = E_NOT_OK;
             break;
@@ -642,25 +1095,67 @@ static FUNC(Std_ReturnType, DCM_CODE) Dcm_WriteDidToNvram(
     }
     
     switch (DidId) {
+        /* DID7: F190 - VIN Write (17 bytes ASCII) */
         case DID_VIN:
             if (DidLength == 17U) {
-                // Nvram_Manager_Write(NVRAM_DID_F190_VIN_ADDR, (uint8 *)DidData_Ptr, 17U);
+                retVal = Nvm_Write(NVM_PARTITION_DYNAMIC_DID_ADDR,
+                                   NVM_DYNAMIC_F190_VIN_OFFSET,
+                                   DidData_Ptr, 17U);
             } else {
                 retVal = E_NOT_OK;
             }
             break;
             
-        case DID_ECU_SERIAL_NUMBER:
+        /* DID10: F198 - Fingerprint Write (32 bytes ASCII) */
+        case DID_FINGERPRINT:
             if (DidLength <= 32U) {
-                // Nvram_Manager_Write(NVRAM_DID_F18C_SERIAL_ADDR, (uint8 *)DidData_Ptr, DidLength);
+                retVal = Nvm_Write(NVM_PARTITION_DYNAMIC_DID_ADDR,
+                                   NVM_DYNAMIC_F198_FINGERPRINT_OFFSET,
+                                   DidData_Ptr, DidLength);
             } else {
                 retVal = E_NOT_OK;
             }
             break;
             
-        case DID_FLASH_COUNTER:
+        /* DID11: F199 - Programming Date Write (4 bytes BCD) */
+        case DID_PROGRAMMING_DATE:
+            if (DidLength == 4U) {
+                retVal = Nvm_Write(NVM_PARTITION_DYNAMIC_DID_ADDR,
+                                   NVM_DYNAMIC_F199_PROG_DATE_OFFSET,
+                                   DidData_Ptr, 4U);
+            } else {
+                retVal = E_NOT_OK;
+            }
+            break;
+            
+        /* DID12: F200 - Temperature Threshold Write (2 bytes unsigned) */
+        case DID_TEMPERATURE_THRESHOLD:
             if (DidLength == 2U) {
-                // Nvram_Manager_Write(NVRAM_DID_F501_FLASH_COUNTER_ADDR, (uint8 *)DidData_Ptr, 2U);
+                retVal = Nvm_Write(NVM_PARTITION_DYNAMIC_DID_ADDR,
+                                   NVM_DYNAMIC_F200_TEMP_TH_OFFSET,
+                                   DidData_Ptr, 2U);
+            } else {
+                retVal = E_NOT_OK;
+            }
+            break;
+            
+        /* DID13: F201 - Author Name Write (16 bytes ASCII) */
+        case DID_AUTHOR_NAME:
+            if (DidLength <= 16U) {
+                retVal = Nvm_Write(NVM_PARTITION_DYNAMIC_DID_ADDR,
+                                   NVM_DYNAMIC_F201_AUTHOR_OFFSET,
+                                   DidData_Ptr, DidLength);
+            } else {
+                retVal = E_NOT_OK;
+            }
+            break;
+            
+        /* DID14: F300 - Public Key Write (64 bytes hex) */
+        case DID_PUBLIC_KEY:
+            if (DidLength <= 64U) {
+                retVal = Nvm_Write(NVM_PARTITION_DYNAMIC_DID_ADDR,
+                                   NVM_DYNAMIC_F300_PUBLIC_KEY_OFFSET,
+                                   DidData_Ptr, DidLength);
             } else {
                 retVal = E_NOT_OK;
             }
@@ -704,17 +1199,9 @@ static FUNC(uint32, DCM_CODE) Dcm_CalculateSecurityKey(
     uint16 SeedLength
 )
 {
-    /* Simple XOR-based key calculation from seed */
-    /* In production, use a proper cryptographic algorithm */
     uint32 key = 0U;
-    
-    // for (uint16 i = 0U; i < SeedLength; i++) {
-    //     key ^= (uint32)(SeedBuffer_Ptr[i] << (8U * (i % 4U)));
-    // }
-    
-    // /* Add constant for obfuscation */
-    // key = key ^ 0x12345678U;
-    key = (uint32)SeedBuffer_Ptr[0] + (uint32)(SeedBuffer_Ptr[1] << 8U) + (uint32)(SeedBuffer_Ptr[2] << 16U) + (uint32)(SeedBuffer_Ptr[3] << 24U);
+    key = (uint32)SeedBuffer_Ptr[0] + (uint32)(SeedBuffer_Ptr[1] << 8U) + 
+          (uint32)(SeedBuffer_Ptr[2] << 16U) + (uint32)(SeedBuffer_Ptr[3] << 24U);
     return key;
 }
 

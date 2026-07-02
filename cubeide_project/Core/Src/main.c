@@ -34,6 +34,7 @@
 #include "com.h"
 #include "pdur.h"
 #include <bsw/dcm/Dcm.h>
+#include <bsw/nvm/nvm_manager.h>
 
 /* ASW 接口头文件 */
 #include <asw/heatm.h>
@@ -706,6 +707,13 @@ void SchM_Init(void)
   }
 
   Mcal_DS18B20_Init();
+
+  /* ─── NVM Init (SPI Flash Partition Manager) ─── */
+  if (Nvm_Init() == STD_OK) {
+      printf("[NVM] W25Q16 NVM Manager 初始化成功\n");
+  } else {
+      printf("[NVM] W25Q16 NVM Manager 初始化失败\n");
+  }
 
   /* ─── BSW Init ─── */
   CanIf_Init();
